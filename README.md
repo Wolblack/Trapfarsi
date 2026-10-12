@@ -42,8 +42,9 @@ npm run check
 ## Account synchronization policy
 
 - Cloud values take precedence when an account already has a saved key.
-- Local profile/playlists/notes are uploaded only when that key does not yet exist in the cloud.
-- This intentionally avoids overwriting existing cloud data with stale local state. It is not a field-level merge or conflict-resolution system.
+- Local profile/playlists/notes are bootstrapped only when the cloud record is absent.
+- Later writes use optimistic concurrency checks against the last cloud revision seen by the tab. If another device changes or removes that record first, the local write is blocked and a conflict is reported rather than silently overwriting the cloud value.
+- This is record-level conflict detection, not a field-level merge UI. The local copy is retained on conflict and must be reviewed before retrying.
 - Sign-out preserves the browser's local copy.
 - If cloud loading fails, the UI reports an error rather than claiming the shared feed succeeded.
 
