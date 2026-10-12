@@ -1,0 +1,23 @@
+{
+  "name": "TRAPFARSI — Music, with intention",
+  "short_name": "TRAPFARSI",
+  "description": "A considered space for music discovery, releases, artists, and your local audio.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#f4f5f7",
+  "orientation": "any",
+  "categories": [
+    "music",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
