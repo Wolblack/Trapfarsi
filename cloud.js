@@ -298,7 +298,9 @@
       let likes = [], comments = [], saved = new Set();
       if (ids.length) {
         const [likeRes, commentRes] = await Promise.all([
-          client.from("community_post_likes").select("post_id,user_id").eq("user_id", currentUser?.id || "00000000-0000-0000-0000-000000000000").in("post_id", ids),
+          currentUser
+            ? client.from("community_post_likes").select("post_id,user_id").eq("user_id", currentUser.id).in("post_id", ids)
+            : Promise.resolve({ data: [], error: null }),
           client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000)
         ]);
         if (likeRes.error) throw likeRes.error;
