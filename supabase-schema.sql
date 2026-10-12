@@ -266,3 +266,21 @@ drop policy if exists "Public can read post like counts" on public.community_pos
 drop policy if exists "Listeners read own likes" on public.community_post_likes;
 create policy "Listeners read own likes" on public.community_post_likes
   for select to authenticated using (auth.uid() = user_id);
+
+
+-- Server-owned revision timestamps make optimistic sync checks meaningful.
+create or replace function public.trapfarsi_touch_listener_data()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+drop trigger if exists trapfarsi_touch_listener_data_before_write on public.listener_data;
+create trigger trapfarsi_touch_listener_data_before_write
+before insert or update on public.listener_data
+for each row execute function public.trapfarsi_touch_listener_data();
