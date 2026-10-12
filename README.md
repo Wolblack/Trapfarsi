@@ -18,8 +18,8 @@ Open http://localhost:8080. Installable/offline behavior requires HTTPS or local
 - Import and play local audio files; play/pause, seek, volume, next/previous, queue, and mini-player. Local audio is never uploaded.
 - Browser-local profile, playlists, and lyric notes.
 - Optional Supabase email magic-link auth and private account-data sync.
-- Shared community feed and authenticated publishing/deletion when Supabase is configured.
-- SQL policies for private listener data, public reading of community posts, owner-only post edit/delete, and a server-side post rate limit.
+- Shared community feed with authenticated publishing, editing, deletion, likes, saved posts, comments/replies, and report intake when Supabase is configured.
+- SQL policies for private listener data, public community reading, owner-only mutations, follows, profile visibility, report intake, and a server-side post rate limit.
 - Installable web-app manifest and offline app shell.
 
 ## Enable Supabase
@@ -43,7 +43,7 @@ Open http://localhost:8080. Installable/offline behavior requires HTTPS or local
 ## Honest limitations
 
 - No Supabase project credentials are included, so live authentication, database policies, and cross-device sync have **not** been verified in this repository environment.
-- Community feed currently supports shared listing, publishing, and deleting your own posts. SQL has report intake and edit authorization, but report/moderation UI, comments/replies, likes, follows, and profile visibility controls are not implemented yet.
+- Community interaction controls are now wired to Supabase tables for likes, saved posts, comments/replies, post editing/deletion, and reporting. A report is recorded for later review; there is no moderator dashboard or automatic moderation service yet. Listener profiles/follows have database policies, but a complete public profile/follow UI is still pending. Database changes must be applied to a configured Supabase project before these controls can work.
 - Local-only mode uses browser storage; it is not a multi-device account.
 - This is not a licensed streaming catalogue. Demo catalogue entries are not real streams; the player can play imported local audio.
 - Lyrics and annotations are user-entered. No unauthorized lyrics fetching is provided.
@@ -54,5 +54,5 @@ Open http://localhost:8080. Installable/offline behavior requires HTTPS or local
 - `index.html` — application UI, local player, discovery, profile and local preview.
 - `cloud.js` — optional auth, conservative account sync, shared community feed.
 - `supabase-config.js` — public project URL/key placeholders.
-- `supabase-schema.sql` — tables, RLS, indexes, post limits, and report intake.
+- `supabase-schema.sql` — private account data, community posts/comments/likes/saves/reports, listener profiles/follows, RLS, indexes, and post limits.
 - `manifest.json`, `sw.js`, `icon.svg` — installable/offline app shell.
