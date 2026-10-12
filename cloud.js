@@ -20,6 +20,7 @@
   let currentUser = null;
   let suppressSync = false;
   let loadGeneration = 0;
+  const cloudVersions = new Map();
   const timers = new Map();
   const $ = id => document.getElementById(id);
   const localRead = key => {
@@ -110,12 +111,51 @@
   }
   async function pushKey(key) {
     if (!client || !currentUser || suppressSync) return;
+    const userId = currentUser.id;
     const value = localRead(key);
     if (value === null) return;
-    const { error } = await client.from("listener_data").upsert({
-      user_id: currentUser.id, data_key: key, value, updated_at: new Date().toISOString()
-    }, { onConflict: "user_id,data_key" });
-    if (error) throw error;
+    // Optimistic concurrency: never overwrite a cloud revision that changed since
+    // this tab last read it. This is intentionally safer than blind upsert.
+    const { data: remote, error: readError } = await client.from("listener_data")
+      .select("updated_at").eq("user_id", userId).eq("data_key", key).maybeSingle();
+    if (readError) throw readError;
+    if (currentUser?.id !== userId) return;
+    const knownVersion = cloudVersions.get(key);
+    if (remote && !knownVersion) {
+      cloudVersions.set(key, remote.updated_at);
+      status("Sync conflict for " + key + ": cloud data already exists. Local changes were not uploaded; refresh/review before retrying.");
+      return;
+    }
+    if (remote && remote.updated_at !== knownVersion) {
+      cloudVersions.set(key, remote.updated_at);
+      status("Sync conflict for " + key + ": a newer cloud revision exists. Your local data was kept on this device and not uploaded.");
+      return;
+    }
+    const updatedAt = new Date().toISOString();
+    if (remote) {
+      const { data, error } = await client.from("listener_data")
+        .update({ value, updated_at: updatedAt })
+        .eq("user_id", userId).eq("data_key", key).eq("updated_at", knownVersion)
+        .select("updated_at").maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        status("Sync conflict for " + key + ": another device saved first. Local changes were kept and not uploaded.");
+        return;
+      }
+      cloudVersions.set(key, data.updated_at);
+    } else {
+      const { data, error } = await client.from("listener_data")
+        .insert({ user_id: userId, data_key: key, value, updated_at: updatedAt })
+        .select("updated_at").single();
+      if (error) {
+        if (error.code === "23505") {
+          status("Sync conflict for " + key + ": another device created this record first. Local changes were not uploaded.");
+          return;
+        }
+        throw error;
+      }
+      cloudVersions.set(key, data.updated_at);
+    }
   }
   function scheduleSync(key) {
     if (!currentUser || suppressSync) return;
@@ -132,9 +172,11 @@
     if (error) throw error;
     if (generation !== loadGeneration || !currentUser) return;
     const cloudKeys = new Set();
+    cloudVersions.clear();
     for (const row of data || []) {
       if (!Object.hasOwn(keys, row.data_key)) continue;
       cloudKeys.add(row.data_key);
+      cloudVersions.set(row.data_key, row.updated_at);
       localWrite(row.data_key, row.value);
     }
     // Bootstrap only absent cloud keys. Never overwrite a cloud record with a
@@ -150,7 +192,7 @@
     if (!client) return;
     const { error } = await client.auth.signOut();
     if (error) { status(error.message); return; }
-    currentUser = null; loadGeneration++; renderSignedOut();
+    currentUser = null; loadGeneration++; cloudVersions.clear(); renderSignedOut();
     status("Signed out. This device's local copy remains available.");
     await loadCommunity();
   }
@@ -382,7 +424,7 @@
           await loadCommunity();
         }, 0);
       } else if (event === "SIGNED_OUT") {
-        currentUser = null; loadGeneration++; renderSignedOut(); loadCommunity();
+        currentUser = null; loadGeneration++; cloudVersions.clear(); renderSignedOut(); loadCommunity();
       }
     });
     // Same-tab changes sync through this wrapper; remote tabs use the storage event.
