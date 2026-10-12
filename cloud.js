@@ -88,14 +88,50 @@
     if(!enabled)$("tf-cloud-send").disabled=true;
   }
   function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+  async function loadCommunity(){
+    if(!client)return;
+    try{
+      const {data,error}=await client.from("community_posts").select("id,user_id,author_name,category,body,created_at").order("created_at",{ascending:false}).limit(100);
+      if(error)throw error;
+      const box=$("tf-community-posts");if(!box)return;
+      const filter=$("tf-feed-filter")?.value||"All topics";
+      const posts=(data||[]).filter(p=>filter==="All topics"||p.category===filter);
+      box.replaceChildren();
+      if(!posts.length){const empty=document.createElement("article");empty.className="glass community-post";const h=document.createElement("h3");h.textContent="No shared conversations yet.";const p=document.createElement("p");p.textContent="Be the first to start a conversation in this channel.";empty.append(h,p);box.append(empty);return;}
+      posts.forEach(post=>{
+        const card=document.createElement("article");card.className="glass community-post";
+        const top=document.createElement("div");top.className="post-top";
+        const avatar=document.createElement("div");avatar.className="post-avatar";avatar.textContent=(post.author_name||"L").slice(0,1).toUpperCase();
+        const who=document.createElement("div");const author=document.createElement("div");author.className="post-author";author.textContent=post.author_name;
+        const time=document.createElement("div");time.className="post-time";time.textContent=new Date(post.created_at).toLocaleString();who.append(author,time);
+        const tag=document.createElement("span");tag.className="post-category";tag.textContent=post.category;top.append(avatar,who,tag);
+        const body=document.createElement("p");body.className="post-body";body.textContent=post.body;
+        const foot=document.createElement("div");foot.className="post-footer";const stamp=document.createElement("span");stamp.textContent="SHARED COMMUNITY";foot.append(stamp);
+        if(currentUser&&post.user_id===currentUser.id){const del=document.createElement("button");del.className="text-action danger";del.textContent="Delete post";del.addEventListener("click",async()=>{const {error}=await client.from("community_posts").delete().eq("id",post.id);if(error){status("Could not delete post: "+error.message);return;}await loadCommunity();});foot.append(del);}
+        card.append(top,body,foot);box.append(card);
+      });
+    }catch(e){status("Shared community unavailable; showing local preview. "+(e.message||""));}
+  }
+  async function publishSharedPost(){
+    if(!enabled||!currentUser||!client)return;
+    const body=$("tf-post-text")?.value.trim();
+    if(!body)return;
+    const profile=localRead("profile")||{name:"Listener"};
+    const category=$("tf-post-category")?.value||"Music Talk";
+    const {error}=await client.from("community_posts").insert({user_id:currentUser.id,author_name:(profile.name||"Listener").slice(0,32),category,body});
+    if(error){status("Local preview saved, but shared post failed: "+error.message);return;}
+    await loadCommunity();status("Your post is now visible in the shared community.");
+  }
   async function init(){
     mountPanel();
     if(!enabled)return;
     client=window.supabase.createClient(cfgUrl,cfgKey);
     const {data:{session}}=await client.auth.getSession();
-    if(session){currentUser=session.user;renderSignedIn(currentUser);await loadCloud();}
+    if(session){currentUser=session.user;renderSignedIn(currentUser);await loadCloud();await loadCommunity();}
+    $("tf-post-submit")?.addEventListener("click",()=>{publishSharedPost().catch(e=>status(e.message||"Could not publish shared post."));});
+    $("tf-feed-filter")?.addEventListener("change",()=>loadCommunity());
     client.auth.onAuthStateChange((event,session)=>{
-      if(event==="SIGNED_IN"&&session){currentUser=session.user;renderSignedIn(currentUser);setTimeout(loadCloud,0);}
+      if(event==="SIGNED_IN"&&session){currentUser=session.user;renderSignedIn(currentUser);setTimeout(()=>{loadCloud();loadCommunity();},0);}
       if(event==="SIGNED_OUT"){currentUser=null;renderSignedOut();}
     });
     // Keep profile/playlists/notes private to their account; sync local edits.
