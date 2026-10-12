@@ -142,6 +142,8 @@
 </div>
 <div class="mini-player" id="mini-player" aria-label="Playback controls"><img id="mini-art" src="" alt=""><button class="mini-track" id="mini-open" aria-label="Open now playing"><strong id="mini-title">Choose a release</strong><span id="mini-artist">TRAPFARSI demo player</span></button><button class="mini-action" data-player="toggle" id="mini-toggle" aria-label="Play or pause">▶</button><button class="mini-action" data-player="next" aria-label="Next track">▶|</button><div class="mini-player-progress"><span id="mini-progress"></span></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <script>
 const albums=[
 {title:"Ballads 1",artist:"Joji",year:"2018",genre:"Alternative R&B",type:"Album",newRelease:false,art:"https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=700&q=85"},
@@ -295,5 +297,6 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
 }
 </script>
+<script src="./cloud.js"></script>
 </body>
 </html>
