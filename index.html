@@ -125,9 +125,9 @@
 <section class="page" id="page-library" data-page="library"><div class="route-heading"><div class="eyebrow">YOUR PERSONAL SPACE · PHASE 04</div><h1>Your <span style="color:#999eaa;font-weight:500">library.</span></h1><p>Keep favourite releases, followed artists, and recent searches together. Saved data stays in this browser.</p></div><div class="library-summary"><div class="library-stat glass"><strong id="saved-count">00</strong><span>SAVED RELEASES</span></div><div class="library-stat glass"><strong id="followed-count">00</strong><span>FOLLOWED ARTISTS</span></div><div class="library-stat glass"><strong id="history-count">00</strong><span>RECENT SEARCHES</span></div></div><div class="library-tabs"><button class="library-tab active" data-library-tab="saved">Saved releases</button><button class="library-tab" data-library-tab="artists">Followed artists</button><button class="library-tab" data-library-tab="history">Recent searches</button></div><div id="library-list" class="library-list"></div><div id="library-empty" class="library-empty glass"><h2>Your library is ready.</h2><p>Search for a release or follow an artist to start building your collection.</p><button class="primary-button" data-route="releases">Explore releases ↗</button></div><div class="release-disclaimer">SAVED LOCALLY IN THIS BROWSER · NO ACCOUNT OR CLOUD SYNC IN THIS DEMO</div></section>
 <section class="page" id="page-search" data-page="search"><div class="route-heading"><div class="eyebrow">FIND YOUR NEXT FAVOURITE · PHASE 04</div><h1>Search <span style="color:#999eaa;font-weight:500">everything.</span></h1><p>Search across artists, releases, genres, and years. Filter the results and save what you want to revisit.</p></div><div class="search-toolbar"><label class="search-box glass"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input id="search-field" type="search" placeholder="Try an artist, genre, or year…" autocomplete="off" aria-label="Search all content"></label><span id="search-count" class="search-count">Demo catalogue</span></div><div class="search-filters"><button class="search-filter active" data-search-type="All">Everything</button><button class="search-filter" data-search-type="Release">Releases</button><button class="search-filter" data-search-type="Artist">Artists</button></div><div id="search-results" class="search-results" aria-live="polite"></div><div class="search-empty glass visible" id="search-empty">Enter a name, genre, or year to search the demo catalogue.</div><div class="release-disclaimer">DEMO CATALOGUE · ARTWORK AND METADATA ARE PLACEHOLDERS</div></section>
 <section class="page" id="page-album" data-page="album"><div id="album-detail" class="album-detail-wrap"></div></section>
-<section class="page" id="page-now-playing" data-page="now-playing"><div class="now-playing-layout"><div class="now-playing-art glass"><img id="np-art" src="" alt="Current release artwork"></div><div class="now-playing-main"><div class="eyebrow">TRAPFARSI LISTENING ROOM · PHASE 05</div><h1 id="np-title">Nothing playing yet.</h1><p id="np-artist" class="np-artist">Choose a release from the catalogue.</p><div class="np-controls"><button class="player-control" data-player="previous" aria-label="Previous track">Ⅱ◀</button><button class="player-main-toggle" data-player="toggle" aria-label="Play or pause">▶</button><button class="player-control" data-player="next" aria-label="Next track">▶Ⅱ</button></div><div class="np-progress"><span id="np-current">0:00</span><input id="np-seek" type="range" min="0" max="180" value="0" aria-label="Seek position"><span id="np-duration">3:00</span></div><div class="np-volume"><span>VOLUME</span><input id="np-volume" type="range" min="0" max="100" value="70" aria-label="Volume"><span id="np-volume-value">70%</span></div><div class="np-note">INTERACTIVE PLAYER PREVIEW · No licensed audio stream is connected in this build.</div></div><section class="np-queue glass"><div class="section-head"><div><h2>Up next</h2><p>Demo queue from the selected release</p></div><span class="pill">QUEUE</span></div><div id="np-queue-list"></div></section></div></section>
+<section class="page" id="page-now-playing" data-page="now-playing"><div class="now-playing-layout"><div class="now-playing-art glass"><img id="np-art" src="" alt="Current release artwork"></div><div class="now-playing-main"><div class="eyebrow">TRAPFARSI LISTENING ROOM · PHASE 05</div><h1 id="np-title">Nothing playing yet.</h1><p id="np-artist" class="np-artist">Choose a release from the catalogue.</p><div class="np-controls"><button class="player-control" data-player="previous" aria-label="Previous track">Ⅱ◀</button><button class="player-main-toggle" data-player="toggle" aria-label="Play or pause">▶</button><button class="player-control" data-player="next" aria-label="Next track">▶Ⅱ</button></div><div class="np-progress"><span id="np-current">0:00</span><input id="np-seek" type="range" min="0" max="180" value="0" aria-label="Seek position"><span id="np-duration">3:00</span></div><div class="np-volume"><span>VOLUME</span><input id="np-volume" type="range" min="0" max="100" value="70" aria-label="Volume"><span id="np-volume-value">70%</span></div><div class="local-audio-tools"><button class="secondary-button" id="tf-import-audio" type="button">＋ Import audio files</button><input id="tf-audio-files" type="file" accept="audio/*" multiple hidden><span class="np-note" id="tf-audio-status">Import audio files from your device. Files stay on your device.</span></div></div><section class="np-queue glass"><div class="section-head"><div><h2>Up next</h2><p>Demo queue from the selected release</p></div><span class="pill">QUEUE</span></div><div id="np-queue-list"></div></section></div></section>
 </main>
-<footer class="footer"><span><strong>TRAPFARSI</strong> · MUSIC, WITH INTENTION</span><span>PHASE 05 / ALBUMS & PLAYER <span class="phase-tag">· BUILD IN PROGRESS</span></span></footer>
+<footer class="footer"><span><strong>TRAPFARSI</strong> · MUSIC, WITH INTENTION</span><span>PHASE 06 / LOCAL AUDIO <span class="phase-tag">· BUILD IN PROGRESS</span></span></footer>
 </div>
 <div class="mini-player" id="mini-player" aria-label="Playback controls"><img id="mini-art" src="" alt=""><button class="mini-track" id="mini-open" aria-label="Open now playing"><strong id="mini-title">Choose a release</strong><span id="mini-artist">TRAPFARSI demo player</span></button><button class="mini-action" data-player="toggle" id="mini-toggle" aria-label="Play or pause">▶</button><button class="mini-action" data-player="next" aria-label="Next track">▶|</button><div class="mini-player-progress"><span id="mini-progress"></span></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -202,6 +202,61 @@ $("mini-open").addEventListener("click",()=>{location.hash="now-playing";tfRende
 $("np-seek").addEventListener("input",e=>{tfPlayer.seconds=Number(e.target.value);tfRenderPlayer()});
 $("np-volume").addEventListener("input",tfRenderPlayer);
 setInterval(()=>{if(tfPlayer.playing){tfPlayer.seconds++;if(tfPlayer.seconds>=tfPlayer.duration){if(tfPlayer.trackIndex<tfPlayer.queue.length-1)tfPlayTrack(tfPlayer.trackIndex+1);else{tfPlayer.playing=false;tfPlayer.seconds=tfPlayer.duration;tfRenderPlayer()}}else tfRenderPlayer()}},1000);
+
+
+/* Phase 06: optional local audio playback; files are not uploaded. */
+const tfLocalAudio = new Audio();
+let tfLocalTracks = [];
+let tfLocalMode = false;
+$("tf-import-audio").addEventListener("click", () => $("tf-audio-files").click());
+$("tf-audio-files").addEventListener("change", e => {
+  const files = Array.from(e.target.files || []).filter(f => f.type.startsWith("audio/"));
+  if (!files.length) { toast("Choose supported audio files."); return; }
+  tfLocalAudio.pause();
+  tfLocalTracks.forEach(t => URL.revokeObjectURL(t.url));
+  tfLocalTracks = files.map(f => ({ title: f.name.replace(/\\.[^.]+$/, ""), fileName: f.name, url: URL.createObjectURL(f) }));
+  tfLocalMode = true;
+  tfPlayer.queue = tfLocalTracks.map(t => ({ title: t.title, duration: 0, url: t.url, fileName: t.fileName }));
+  tfPlayer.trackIndex = 0;
+  tfPlayLocalTrack(0);
+  $("tf-audio-status").textContent = files.length + " local file(s) ready · not uploaded";
+});
+function tfPlayLocalTrack(i) {
+  if (!tfPlayer.queue.length) return;
+  tfPlayer.trackIndex = (i + tfPlayer.queue.length) % tfPlayer.queue.length;
+  const t = tfPlayer.queue[tfPlayer.trackIndex];
+  tfLocalAudio.src = t.url;
+  tfLocalAudio.currentTime = 0;
+  tfLocalAudio.volume = Number($("np-volume").value) / 100;
+  tfLocalAudio.play().then(() => { tfPlayer.playing = true; tfRenderPlayer(); }).catch(() => { tfPlayer.playing = false; toast("Tap play to start audio playback."); });
+  $("np-title").textContent = t.title;
+  $("np-artist").textContent = "LOCAL AUDIO · " + t.fileName;
+  tfRenderPlayer();
+}
+tfLocalAudio.addEventListener("timeupdate", () => {
+  if (!tfLocalMode) return;
+  tfPlayer.seconds = tfLocalAudio.currentTime || 0;
+  tfPlayer.duration = Number.isFinite(tfLocalAudio.duration) ? tfLocalAudio.duration : 0;
+  const seek = $("np-seek");
+  if (seek) { seek.max = Math.max(1, tfPlayer.duration); seek.value = tfPlayer.seconds; }
+  $("np-current").textContent = tfTime(tfPlayer.seconds);
+  $("np-duration").textContent = tfTime(tfPlayer.duration);
+  const progress = $("mini-progress");
+  if (progress) progress.style.width = (tfPlayer.duration ? tfPlayer.seconds / tfPlayer.duration * 100 : 0) + "%";
+});
+tfLocalAudio.addEventListener("ended", () => {
+  if (tfLocalMode && tfPlayer.trackIndex < tfPlayer.queue.length - 1) tfPlayLocalTrack(tfPlayer.trackIndex + 1);
+  else { tfPlayer.playing = false; tfRenderPlayer(); }
+});
+const tfOriginalToggle = tfTogglePlayback;
+tfTogglePlayback = function() {
+  if (!tfLocalMode) { tfOriginalToggle(); return; }
+  if (tfLocalAudio.paused) tfLocalAudio.play().then(() => { tfPlayer.playing = true; tfRenderPlayer(); }).catch(() => toast("Unable to play this file."));
+  else { tfLocalAudio.pause(); tfPlayer.playing = false; tfRenderPlayer(); }
+};
+const tfOriginalSeek = $("np-seek").oninput;
+$("np-seek").addEventListener("input", e => { if (tfLocalMode) tfLocalAudio.currentTime = Number(e.target.value); });
+$("np-volume").addEventListener("input", e => { tfLocalAudio.volume = Number(e.target.value) / 100; });
 
 renderLibrary();renderSearch();route();
 </script>
