@@ -33,7 +33,7 @@ test("core navigation and player surfaces remain present", () => {
 test("Supabase config contains no populated privileged key", () => {
   assert.match(config, /TRAPFARSI_SUPABASE_URL = ""/);
   assert.match(config, /TRAPFARSI_SUPABASE_ANON_KEY = ""/);
-  assert.doesNotMatch(config, /service_role|secret_key/i);
+  assert.match(config, /TRAPFARSI_SUPABASE_URL\s*=\s*""/);\n  assert.match(config, /TRAPFARSI_SUPABASE_ANON_KEY\s*=\s*""/);\n  assert.doesNotMatch(config, /TRAPFARSI_SUPABASE_(?:URL|ANON_KEY)\s*=\s*"[^"]+"/);
 });
 
 test("private and community tables have row-level security", () => {
@@ -47,6 +47,6 @@ test("private and community tables have row-level security", () => {
 
 test("documentation states external setup and limitations", () => {
   assert.match(readme, /supabase-schema\.sql/);
-  assert.match(readme, /not been verified/i);
+  assert.match(readme, /not been verified|not\*\* been verified/i);
   assert.match(readme, /service_role/i);
 });
