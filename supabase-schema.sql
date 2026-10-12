@@ -209,3 +209,53 @@ drop trigger if exists trapfarsi_validate_comment_before_write on public.communi
 create trigger trapfarsi_validate_comment_before_write
 before insert on public.community_comments
 for each row execute function public.trapfarsi_validate_comment();
+
+
+-- Prevent clients from forging timestamps or transferring ownership to evade limits.
+create or replace function public.trapfarsi_lock_post_metadata()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    new.updated_at := now();
+  else
+    new.user_id := old.user_id;
+    new.created_at := old.created_at;
+    new.updated_at := now();
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trapfarsi_lock_post_metadata_before_write on public.community_posts;
+create trigger trapfarsi_lock_post_metadata_before_write
+before insert or update on public.community_posts
+for each row execute function public.trapfarsi_lock_post_metadata();
+
+create or replace function public.trapfarsi_lock_comment_metadata()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    new.updated_at := now();
+  else
+    new.user_id := old.user_id;
+    new.post_id := old.post_id;
+    new.parent_id := old.parent_id;
+    new.created_at := old.created_at;
+    new.updated_at := now();
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trapfarsi_lock_comment_metadata_before_write on public.community_comments;
+create trigger trapfarsi_lock_comment_metadata_before_write
+before insert or update on public.community_comments
+for each row execute function public.trapfarsi_lock_comment_metadata();
