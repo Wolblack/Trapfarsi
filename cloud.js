@@ -145,51 +145,163 @@
     status("Signed out. This device's local copy remains available.");
     await loadCommunity();
   }
-  function renderSharedPosts(posts) {
+  const el = (tag, cls, value) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (value !== undefined) node.textContent = value;
+    return node;
+  };
+  async function togglePostLike(postId, liked) {
+    if (!currentUser) { status("Sign in to like community posts."); return; }
+    const result = liked
+      ? await client.from("community_post_likes").delete().eq("post_id", postId).eq("user_id", currentUser.id)
+      : await client.from("community_post_likes").insert({ post_id: postId, user_id: currentUser.id });
+    if (result.error) { status("Like could not be updated: " + result.error.message); return; }
+    await loadCommunity();
+  }
+  async function toggleSavedPost(postId, saved) {
+    if (!currentUser) { status("Sign in to save community posts."); return; }
+    const result = saved
+      ? await client.from("saved_community_posts").delete().eq("post_id", postId).eq("user_id", currentUser.id)
+      : await client.from("saved_community_posts").insert({ post_id: postId, user_id: currentUser.id });
+    if (result.error) { status("Saved post could not be updated: " + result.error.message); return; }
+    await loadCommunity();
+  }
+  async function addComment(postId, body, parentId = null) {
+    if (!currentUser) { status("Sign in to comment."); return; }
+    body = String(body || "").trim();
+    if (!body || body.length > 1000) { status("Comments must be between 1 and 1,000 characters."); return; }
+    const { error } = await client.from("community_comments").insert({
+      post_id: postId, user_id: currentUser.id, parent_id: parentId, body
+    });
+    if (error) { status("Comment could not be published: " + error.message); return; }
+    await loadCommunity();
+  }
+  async function reportPost(postId) {
+    if (!currentUser) { status("Sign in to report a post."); return; }
+    const reason = window.prompt("Why are you reporting this post? (3–240 characters)");
+    if (reason === null) return;
+    const clean = reason.trim();
+    if (clean.length < 3 || clean.length > 240) { status("Report reason must be 3–240 characters."); return; }
+    const { error } = await client.from("community_reports").insert({ reporter_id: currentUser.id, post_id: postId, reason: clean });
+    status(error ? "Report could not be submitted: " + error.message : "Report submitted for review.");
+  }
+  function renderSharedPosts(posts, likes = [], comments = [], saved = new Set()) {
     const box = $("tf-community-posts");
     if (!box) return;
     box.replaceChildren();
     if (!posts.length) {
-      const empty = document.createElement("article"); empty.className = "glass community-post";
-      const h = document.createElement("h3"); h.textContent = "No shared conversations yet.";
-      const p = document.createElement("p"); p.textContent = "Be the first to start a conversation in this channel.";
-      empty.append(h, p); box.append(empty); return;
+      const empty = el("article", "glass community-post");
+      empty.append(el("h3", "", "No shared conversations yet."), el("p", "", "Be the first to start a conversation in this channel."));
+      box.append(empty); return;
     }
+    const likedIds = new Set(likes.filter(x => currentUser && x.user_id === currentUser.id).map(x => x.post_id));
     posts.forEach(post => {
-      const card = document.createElement("article"); card.className = "glass community-post";
-      const top = document.createElement("div"); top.className = "post-top";
-      const avatar = document.createElement("div"); avatar.className = "post-avatar"; avatar.textContent = (post.author_name || "L").slice(0, 1).toUpperCase();
-      const who = document.createElement("div");
-      const author = document.createElement("div"); author.className = "post-author"; author.textContent = post.author_name || "Listener";
-      const time = document.createElement("div"); time.className = "post-time"; time.textContent = new Date(post.created_at).toLocaleString();
-      who.append(author, time);
-      const tag = document.createElement("span"); tag.className = "post-category"; tag.textContent = post.category;
+      const card = el("article", "glass community-post");
+      const top = el("div", "post-top");
+      const avatar = el("div", "post-avatar", (post.author_name || "L").slice(0, 1).toUpperCase());
+      const who = el("div");
+      who.append(el("div", "post-author", post.author_name || "Listener"),
+        el("div", "post-time", new Date(post.created_at).toLocaleString()));
+      const tag = el("span", "post-category", post.category);
       top.append(avatar, who, tag);
-      const body = document.createElement("p"); body.className = "post-body"; body.textContent = post.body;
-      const foot = document.createElement("div"); foot.className = "post-footer";
-      const stamp = document.createElement("span"); stamp.textContent = "SHARED COMMUNITY"; foot.append(stamp);
+      const body = el("p", "post-body", post.body);
+      const foot = el("div", "post-footer");
+      foot.append(el("span", "", "SHARED COMMUNITY"));
+      const postLikes = likes.filter(x => x.post_id === post.id);
+      const liked = likedIds.has(post.id);
+      const like = el("button", "text-action", (liked ? "♥" : "♡") + " Like · " + postLikes.length);
+      like.type = "button"; like.setAttribute("aria-pressed", String(liked));
+      like.addEventListener("click", () => togglePostLike(post.id, liked));
+      const save = el("button", "text-action", saved.has(post.id) ? "Saved" : "Save");
+      save.type = "button"; save.setAttribute("aria-pressed", String(saved.has(post.id)));
+      save.addEventListener("click", () => toggleSavedPost(post.id, saved.has(post.id)));
+      const report = el("button", "text-action", "Report");
+      report.type = "button"; report.addEventListener("click", () => reportPost(post.id));
+      foot.append(like, save, report);
       if (currentUser && post.user_id === currentUser.id) {
-        const del = document.createElement("button"); del.className = "text-action danger"; del.textContent = "Delete post";
+        const edit = el("button", "text-action", "Edit");
+        edit.type = "button";
+        edit.addEventListener("click", async () => {
+          const next = window.prompt("Edit your post (maximum 600 characters)", post.body);
+          if (next === null) return;
+          const clean = next.trim();
+          if (!clean || clean.length > 600) { status("Post must be between 1 and 600 characters."); return; }
+          const { error } = await client.from("community_posts").update({ body: clean, updated_at: new Date().toISOString() }).eq("id", post.id).eq("user_id", currentUser.id);
+          if (error) status("Could not edit post: " + error.message); else await loadCommunity();
+        });
+        const del = el("button", "text-action danger", "Delete post");
+        del.type = "button";
         del.addEventListener("click", async () => {
+          if (!window.confirm("Delete this post and its comments?")) return;
           del.disabled = true;
-          const { error } = await client.from("community_posts").delete().eq("id", post.id);
+          const { error } = await client.from("community_posts").delete().eq("id", post.id).eq("user_id", currentUser.id);
           if (error) { del.disabled = false; status("Could not delete post: " + error.message); return; }
           await loadCommunity();
         });
-        foot.append(del);
+        foot.append(edit, del);
       }
-      card.append(top, body, foot); box.append(card);
+      const thread = el("section", "tf-comment-thread");
+      thread.append(el("h4", "", "Conversation · " + comments.filter(x => x.post_id === post.id).length));
+      const postComments = comments.filter(x => x.post_id === post.id);
+      postComments.filter(x => !x.parent_id).forEach(comment => {
+        const item = el("div", "tf-comment");
+        item.append(el("p", "", comment.body), el("small", "", new Date(comment.created_at).toLocaleString()));
+        if (currentUser && comment.user_id === currentUser.id) {
+          const remove = el("button", "text-action danger", "Delete comment");
+          remove.type = "button";
+          remove.addEventListener("click", async () => {
+            const { error } = await client.from("community_comments").delete().eq("id", comment.id).eq("user_id", currentUser.id);
+            if (error) status("Could not delete comment: " + error.message); else await loadCommunity();
+          });
+          item.append(remove);
+        }
+        const replies = postComments.filter(x => x.parent_id === comment.id);
+        replies.forEach(reply => item.append(el("blockquote", "tf-reply", reply.body + " — " + new Date(reply.created_at).toLocaleString())));
+        const replyButton = el("button", "text-action", "Reply");
+        replyButton.type = "button";
+        replyButton.addEventListener("click", async () => {
+          const reply = window.prompt("Write a reply (maximum 1,000 characters)");
+          if (reply !== null) await addComment(post.id, reply, comment.id);
+        });
+        item.append(replyButton); thread.append(item);
+      });
+      const input = el("textarea", "community-input");
+      input.rows = 2; input.maxLength = 1000; input.placeholder = currentUser ? "Add to the conversation…" : "Sign in to comment";
+      input.setAttribute("aria-label", "Comment");
+      const send = el("button", "secondary-button", "Comment");
+      send.type = "button"; send.disabled = !currentUser;
+      send.addEventListener("click", async () => { send.disabled = true; await addComment(post.id, input.value); });
+      thread.append(input, send);
+      card.append(top, body, foot, thread); box.append(card);
     });
   }
   async function loadCommunity() {
     if (!client) return;
     try {
-      let query = client.from("community_posts").select("id,user_id,author_name,category,body,created_at")
+      const { data: allPosts, error } = await client.from("community_posts")
+        .select("id,user_id,author_name,category,body,created_at,updated_at")
         .order("created_at", { ascending: false }).limit(100);
-      const { data, error } = await query;
       if (error) throw error;
       const filter = $("tf-feed-filter")?.value || "All topics";
-      renderSharedPosts((data || []).filter(p => filter === "All topics" || p.category === filter));
+      const posts = (allPosts || []).filter(p => filter === "All topics" || p.category === filter);
+      const ids = posts.map(p => p.id);
+      let likes = [], comments = [], saved = new Set();
+      if (ids.length) {
+        const [likeRes, commentRes] = await Promise.all([
+          client.from("community_post_likes").select("post_id,user_id").in("post_id", ids),
+          client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000)
+        ]);
+        if (likeRes.error) throw likeRes.error;
+        if (commentRes.error) throw commentRes.error;
+        likes = likeRes.data || []; comments = commentRes.data || [];
+        if (currentUser) {
+          const savedRes = await client.from("saved_community_posts").select("post_id").eq("user_id", currentUser.id).in("post_id", ids);
+          if (savedRes.error) throw savedRes.error;
+          saved = new Set((savedRes.data || []).map(x => x.post_id));
+        }
+      }
+      renderSharedPosts(posts, likes, comments, saved);
     } catch (e) {
       status("Shared community could not load. Check Supabase configuration and RLS: " + (e.message || "network error."));
     }
