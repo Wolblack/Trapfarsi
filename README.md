@@ -10,40 +10,49 @@ No build step or package manager is required.
 python3 -m http.server 8080
 ```
 
-Open http://localhost:8080. For installable/offline behavior, use HTTPS or localhost.
+Open http://localhost:8080. Installable/offline behavior requires HTTPS or localhost.
 
-## Current features
+## Current implementation
 
 - Discover, New Releases, Artists, Library, Search, Album Details, Now Playing, Profile, Community, and a hidden Lyrics Room.
-- Import local audio files; play/pause, seek, volume, next/previous, queue, and mini-player. Local audio files are not uploaded.
-- Personal playlists, profile and lyric notes in browser storage.
-- Email magic-link account flow and cloud sync scaffold for profiles, playlists and notes through Supabase.
-- Shared community-post database schema with row-level security, ready for integration.
+- Import and play local audio files; play/pause, seek, volume, next/previous, queue, and mini-player. Local audio is never uploaded.
+- Browser-local profile, playlists, and lyric notes.
+- Optional Supabase email magic-link auth and private account-data sync.
+- Shared community feed and authenticated publishing/deletion when Supabase is configured.
+- SQL policies for private listener data, public reading of community posts, owner-only post edit/delete, and a server-side post rate limit.
 - Installable web-app manifest and offline app shell.
 
-## Enable accounts and cloud sync
+## Enable Supabase
 
 1. Create a project at https://supabase.com.
-2. Open **SQL Editor** and run the complete `supabase-schema.sql` file from this repository.
-3. In **Project Settings → API**, copy the Project URL and the **publishable/anon public key**. Never use a `service_role` or secret key in frontend code.
-4. Edit `supabase-config.js` and set `TRAPFARSI_SUPABASE_URL` and `TRAPFARSI_SUPABASE_ANON_KEY`.
-5. In Supabase **Authentication → URL Configuration**, add your local URL (for example `http://localhost:8080`) and your deployed HTTPS site URL to the allowed redirect URLs. Configure your email provider.
-6. Serve the project through localhost or HTTPS, then open Profile and request a sign-in link.
+2. In Supabase SQL Editor, run the complete `supabase-schema.sql` file.
+3. In Project Settings → API, copy the Project URL and the publishable/anon public key. Never put a `service_role` or secret key in frontend code.
+4. Add those public values to `supabase-config.js` as `TRAPFARSI_SUPABASE_URL` and `TRAPFARSI_SUPABASE_ANON_KEY`.
+5. In Authentication → URL Configuration, allow your local origin (for example `http://localhost:8080`) and deployed HTTPS URL. Configure the email provider.
+6. Run the app over localhost or HTTPS. Open Profile, request a sign-in link, and follow the email.
+7. Test with two separate user accounts/devices to verify the same community posts appear for both.
 
-The client library is loaded from the Supabase CDN. If the CDN or network is blocked, local-only mode remains available.
+## Account synchronization policy
 
-## Important limitations
+- Cloud values take precedence when an account already has a saved key.
+- Local profile/playlists/notes are uploaded only when that key does not yet exist in the cloud.
+- This intentionally avoids overwriting existing cloud data with stale local state. It is not a field-level merge or conflict-resolution system.
+- Sign-out preserves the browser's local copy.
+- If cloud loading fails, the UI reports an error rather than claiming the shared feed succeeded.
 
-- Supabase setup is required for accounts and cloud sync. The frontend configuration is intentionally blank by default.
-- The cloud layer syncs account data (profile, playlists, notes) to the signed-in account. The shared community table is created by the SQL schema; the current community UI still uses local preview posts and needs its final shared-feed wiring before public posting is live.
-- This is not a licensed streaming catalogue. The player plays imported local audio and demo entries; it does not provide commercial music streams.
-- Lyrics are user-entered notes/lyrics, not a copyrighted lyric-fetching service.
-- Test the SQL and sign-in flow in your own Supabase project before public launch. No live Supabase credentials are included.
+## Honest limitations
+
+- No Supabase project credentials are included, so live authentication, database policies, and cross-device sync have **not** been verified in this repository environment.
+- Community feed currently supports shared listing, publishing, and deleting your own posts. SQL has report intake and edit authorization, but report/moderation UI, comments/replies, likes, follows, and profile visibility controls are not implemented yet.
+- Local-only mode uses browser storage; it is not a multi-device account.
+- This is not a licensed streaming catalogue. Demo catalogue entries are not real streams; the player can play imported local audio.
+- Lyrics and annotations are user-entered. No unauthorized lyrics fetching is provided.
+- No automated browser tests or production deployment verification are claimed.
 
 ## Files
 
-- `index.html` — application interface and player.
+- `index.html` — application UI, local player, discovery, profile and local preview.
+- `cloud.js` — optional auth, conservative account sync, shared community feed.
 - `supabase-config.js` — public project URL/key placeholders.
-- `cloud.js` — optional authentication and cloud sync layer.
-- `supabase-schema.sql` — database tables and row-level security policies.
+- `supabase-schema.sql` — tables, RLS, indexes, post limits, and report intake.
 - `manifest.json`, `sw.js`, `icon.svg` — installable/offline app shell.
