@@ -234,6 +234,12 @@
     client = window.supabase.createClient(cfgUrl, cfgKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
+    // Keep the shared feed as the community renderer after navigation.
+    const localCommunityRenderer = window.tfRenderCommunity;
+    window.tfRenderCommunity = function() {
+      if (client) { loadCommunity(); return; }
+      if (typeof localCommunityRenderer === "function") localCommunityRenderer();
+    };
     // Community is public-readable under the supplied RLS policies.
     await loadCommunity();
     try {
