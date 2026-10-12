@@ -38,7 +38,7 @@ test("Supabase config contains no populated privileged key", () => {
 
 test("private and community tables have row-level security", () => {
   for (const table of ["listener_data", "community_posts", "community_comments", "community_post_likes", "saved_community_posts", "listener_follows", "listener_profiles", "community_reports"]) {
-    assert.match(schema, new RegExp("alter table public\." + table + " enable row level security", "i"), table);
+    assert.match(schema, new RegExp("alter table public\\." + table + " enable row level security", "i"), table);
   }
   assert.match(schema, /auth\.uid\(\) = user_id/i);
   assert.match(schema, /trapfarsi_limit_community_posts/);
