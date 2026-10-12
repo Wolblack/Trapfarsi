@@ -43,6 +43,15 @@
       .tf-cloud-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.tf-cloud-row input{flex:1;min-width:180px}
       .tf-cloud-status{font-size:12px;color:#657080;margin:8px 0 0}.tf-cloud-panel h2{margin:0 0 6px}.tf-cloud-panel p{margin:0 0 12px}
       .tf-cloud-panel .community-input{box-sizing:border-box;width:100%;margin:6px 0 10px}
+      .tf-comment-thread{border-top:1px solid rgba(100,110,125,.16);margin-top:14px;padding-top:12px}
+      .tf-comment-thread h4{font-size:13px;margin:0 0 10px}
+      .tf-comment{padding:10px 0;border-bottom:1px solid rgba(100,110,125,.12)}
+      .tf-comment p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 5px}
+      .tf-comment small{font-size:11px;color:#737d8b}
+      .tf-reply{margin:8px 0 8px 14px;padding:8px 10px;border-left:2px solid rgba(100,110,125,.3);font-size:13px}
+      .tf-comment-thread textarea{box-sizing:border-box;width:100%;margin:10px 0 8px;resize:vertical}
+      .tf-comment-thread button{margin:3px 6px 3px 0}
+      @media(prefers-reduced-motion:reduce){.tf-comment-thread *{scroll-behavior:auto!important;transition:none!important}}
     `;
     document.head.append(style);
   }
