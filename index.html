@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f4f5f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
 <meta name="description" content="TRAPFARSI — a calm, glass-crafted home for music discovery.">
 <title>TRAPFARSI — Hear beyond the noise</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -259,6 +263,9 @@ $("np-seek").addEventListener("input", e => { if (tfLocalMode) tfLocalAudio.curr
 $("np-volume").addEventListener("input", e => { tfLocalAudio.volume = Number(e.target.value) / 100; });
 
 renderLibrary();renderSearch();route();
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+}
 </script>
 </body>
 </html>
