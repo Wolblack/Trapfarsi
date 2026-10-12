@@ -1,0 +1,5 @@
+// TRAPFARSI cloud configuration
+// Create a project at https://supabase.com and fill these two public values.
+// Never put a service_role key in browser code.
+window.TRAPFARSI_SUPABASE_URL = "";
+window.TRAPFARSI_SUPABASE_ANON_KEY = "";
