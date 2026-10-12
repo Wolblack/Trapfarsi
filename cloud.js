@@ -128,7 +128,7 @@
     client=window.supabase.createClient(cfgUrl,cfgKey);
     const {data:{session}}=await client.auth.getSession();
     if(session){currentUser=session.user;renderSignedIn(currentUser);await loadCloud();await loadCommunity();}
-    $("tf-post-submit")?.addEventListener("click",()=>{publishSharedPost().catch(e=>status(e.message||"Could not publish shared post."));});
+    $("tf-post-submit")?.addEventListener("click",()=>{publishSharedPost().catch(e=>status(e.message||"Could not publish shared post."));},true);
     $("tf-feed-filter")?.addEventListener("change",()=>loadCommunity());
     client.auth.onAuthStateChange((event,session)=>{
       if(event==="SIGNED_IN"&&session){currentUser=session.user;renderSignedIn(currentUser);setTimeout(()=>{loadCloud();loadCommunity();},0);}
