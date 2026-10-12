@@ -259,3 +259,10 @@ drop trigger if exists trapfarsi_lock_comment_metadata_before_write on public.co
 create trigger trapfarsi_lock_comment_metadata_before_write
 before insert or update on public.community_comments
 for each row execute function public.trapfarsi_lock_comment_metadata();
+
+
+-- Like ownership is private: the client needs only its own like rows to toggle state.
+drop policy if exists "Public can read post like counts" on public.community_post_likes;
+drop policy if exists "Listeners read own likes" on public.community_post_likes;
+create policy "Listeners read own likes" on public.community_post_likes
+  for select to authenticated using (auth.uid() = user_id);
