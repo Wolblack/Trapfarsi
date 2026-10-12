@@ -121,6 +121,10 @@
     if (readError) throw readError;
     if (currentUser?.id !== userId) return;
     const knownVersion = cloudVersions.get(key);
+    if (!remote && knownVersion) {
+      status("Sync conflict for " + key + ": the cloud record was removed elsewhere. Local data was kept and not recreated automatically.");
+      return;
+    }
     if (remote && !knownVersion) {
       cloudVersions.set(key, remote.updated_at);
       status("Sync conflict for " + key + ": cloud data already exists. Local changes were not uploaded; refresh/review before retrying.");
@@ -186,7 +190,7 @@
     }
     if (typeof window.tfRenderProfile === "function") window.tfRenderProfile();
     if (typeof window.tfRenderCommunity === "function") window.tfRenderCommunity();
-    status("Account data loaded. Existing cloud records take precedence; local data was uploaded only for missing keys.");
+    status("Account data loaded. Cloud revisions are tracked; conflicting updates are blocked rather than silently overwriting newer data.");
   }
   async function signOut() {
     if (!client) return;
