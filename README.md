@@ -4,13 +4,20 @@
 
 ## Run locally
 
-No build step or package manager is required.
+The app itself is static and has no runtime dependency install. Node.js 22+ is needed only for the repository smoke tests.
 
 ```bash
 python3 -m http.server 8080
 ```
 
 Open http://localhost:8080. Installable/offline behavior requires HTTPS or localhost.
+
+Run repository checks with:
+
+```bash
+npm test
+npm run check
+```
 
 ## Current implementation
 
