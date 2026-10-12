@@ -178,3 +178,34 @@ grant select, insert, delete on public.saved_community_posts to authenticated;
 grant select, insert, delete on public.listener_follows to authenticated;
 grant select, insert, update on public.listener_profiles to authenticated;
 grant select on public.listener_profiles to anon;
+
+
+-- Validate reply threading and apply a server-side comment rate limit.
+create or replace function public.trapfarsi_validate_comment()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare recent_count integer;
+declare parent_post uuid;
+begin
+  if new.parent_id is not null then
+    select post_id into parent_post from public.community_comments where id = new.parent_id;
+    if parent_post is null or parent_post <> new.post_id then
+      raise exception 'Reply must belong to the same post.' using errcode = '23514';
+    end if;
+  end if;
+  select count(*) into recent_count
+  from public.community_comments
+  where user_id = new.user_id and created_at > now() - interval '10 minutes';
+  if recent_count >= 20 then
+    raise exception 'Comment limit reached. Please wait before commenting again.' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trapfarsi_validate_comment_before_write on public.community_comments;
+create trigger trapfarsi_validate_comment_before_write
+before insert on public.community_comments
+for each row execute function public.trapfarsi_validate_comment();
