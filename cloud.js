@@ -219,7 +219,7 @@
       foot.append(el("span", "", "SHARED COMMUNITY"));
       const postLikes = likes.filter(x => x.post_id === post.id);
       const liked = likedIds.has(post.id);
-      const like = el("button", "text-action", (liked ? "♥" : "♡") + " Like · " + postLikes.length);
+      const like = el("button", "text-action", liked ? "♥ Liked" : "♡ Like");
       like.type = "button"; like.setAttribute("aria-pressed", String(liked));
       like.addEventListener("click", () => togglePostLike(post.id, liked));
       const save = el("button", "text-action", saved.has(post.id) ? "Saved" : "Save");
@@ -298,7 +298,7 @@
       let likes = [], comments = [], saved = new Set();
       if (ids.length) {
         const [likeRes, commentRes] = await Promise.all([
-          client.from("community_post_likes").select("post_id,user_id").in("post_id", ids),
+          client.from("community_post_likes").select("post_id,user_id").eq("user_id", currentUser?.id || "00000000-0000-0000-0000-000000000000").in("post_id", ids),
           client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000)
         ]);
         if (likeRes.error) throw likeRes.error;
