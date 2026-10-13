@@ -64,3 +64,7 @@ npm run check
 - `supabase-config.js` — public project URL/key placeholders.
 - `supabase-schema.sql` — private account data, community posts/comments/likes/saves/reports, listener profiles/follows, RLS, indexes, and post limits.
 - `manifest.json`, `sw.js`, `icon.svg` — installable/offline app shell.
+
+## Updating the project on GitHub
+
+New to Git? Follow the [beginner-friendly update guide](docs/UPDATING.md) for checking changes, running tests, committing, and pushing updates safely.
