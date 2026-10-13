@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64" fill="none">
+  <!-- TRAPFARSI specialized channel icon set · glass neumorphic monoline -->
+  <symbol id="tf-logo-mark" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="18" fill="#1c212b"/>
+    <rect x="3" y="3" width="58" height="58" rx="16" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="1.5"/>
+    <text x="32" y="42" text-anchor="middle" font-family="Manrope,Arial,sans-serif" font-weight="800" font-size="28" fill="#f4f6f9" letter-spacing="-1.5">T.</text>
+  </symbol>
+  <symbol id="tf-logo-wave" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="18" fill="#1c212b"/>
+    <path d="M12 34c4-10 8-10 12 0s8 10 12 0 8-10 12 0 8 10 12 0" stroke="#e8ecf2" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <circle cx="32" cy="18" r="4" fill="#e8ecf2"/>
+  </symbol>
+  <symbol id="tf-disc" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <circle cx="32" cy="32" r="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <circle cx="32" cy="32" r="2.5" fill="currentColor"/>
+    <path d="M32 6v8M32 50v8M6 32h8M50 32h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="tf-play" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M26 20l22 12-22 12V20z" fill="currentColor"/>
+  </symbol>
+  <symbol id="tf-pause" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <rect x="22" y="20" width="7" height="24" rx="2" fill="currentColor"/>
+    <rect x="35" y="20" width="7" height="24" rx="2" fill="currentColor"/>
+  </symbol>
+  <symbol id="tf-next" viewBox="0 0 64 64">
+    <path d="M14 16l24 16-24 16V16z" fill="currentColor"/>
+    <rect x="42" y="16" width="6" height="32" rx="2" fill="currentColor"/>
+  </symbol>
+  <symbol id="tf-prev" viewBox="0 0 64 64">
+    <path d="M50 16L26 32l24 16V16z" fill="currentColor"/>
+    <rect x="16" y="16" width="6" height="32" rx="2" fill="currentColor"/>
+  </symbol>
+  <symbol id="tf-shuffle" viewBox="0 0 64 64">
+    <path d="M8 20h14l24 24h10M8 44h14l8-8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M46 16l10 4-4 10M46 48l10-4-4-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-repeat" viewBox="0 0 64 64">
+    <path d="M14 28V20h36v12M50 36v8H14V32" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M44 12l6 8-10 2M20 52l-6-8 10-2" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-lyrics" viewBox="0 0 64 64">
+    <rect x="12" y="10" width="40" height="44" rx="6" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M20 22h24M20 32h24M20 42h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="tf-discuss" viewBox="0 0 64 64">
+    <path d="M12 18h40v28H28l-10 8v-8H12V18z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+    <path d="M22 28h20M22 36h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="tf-library" viewBox="0 0 64 64">
+    <rect x="10" y="12" width="14" height="40" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <rect x="28" y="12" width="14" height="40" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <rect x="46" y="12" width="8" height="40" rx="3" stroke="currentColor" stroke-width="2.5" fill="none"/>
+  </symbol>
+  <symbol id="tf-search" viewBox="0 0 64 64">
+    <circle cx="28" cy="28" r="14" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M39 39l14 14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="tf-profile" viewBox="0 0 64 64">
+    <circle cx="32" cy="24" r="12" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M12 54c4-12 12-18 20-18s16 6 20 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-heart" viewBox="0 0 64 64">
+    <path d="M32 52S10 38 10 24a12 12 0 0 1 22-6 12 12 0 0 1 22 6c0 14-22 28-22 28z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-star" viewBox="0 0 64 64">
+    <path d="M32 8l6.5 18.5H58l-15 11 5.8 18.5L32 45l-16.8 11 5.8-18.5-15-11h19.5L32 8z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-fire" viewBox="0 0 64 64">
+    <path d="M32 8c4 12-8 16-8 28a12 12 0 0 0 24 0c0-10-6-14-4-24-6 6-8 10-12-4z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-moon" viewBox="0 0 64 64">
+    <path d="M40 12a22 22 0 1 0 12 28A18 18 0 0 1 40 12z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+  </symbol>
+  <symbol id="tf-globe" viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M10 32h44M32 10c8 8 8 36 0 44M32 10c-8 8-8 36 0 44" stroke="currentColor" stroke-width="2.2" fill="none"/>
+  </symbol>
+  <symbol id="tf-badge" viewBox="0 0 64 64">
+    <path d="M32 6l8 6 10-1 3 10 9 5-5 9 1 10-10 3-6 8-9-5-10 1-3-10-9-5 5-9-1-10 10-3 6-8z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="none"/>
+    <circle cx="32" cy="32" r="10" stroke="currentColor" stroke-width="2.2" fill="none"/>
+  </symbol>
+  <symbol id="tf-persian" viewBox="0 0 64 64">
+    <rect x="8" y="14" width="48" height="36" rx="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M18 36c4-10 10-12 14-4s8 8 14 2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <circle cx="22" cy="24" r="2" fill="currentColor"/>
+  </symbol>
+  <symbol id="tf-trap" viewBox="0 0 64 64">
+    <path d="M12 44V24l10 8 10-16 10 16 10-8v20H12z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none"/>
+    <path d="M20 44v-6M32 44v-10M44 44v-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="tf-share" viewBox="0 0 64 64">
+    <circle cx="14" cy="32" r="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <circle cx="50" cy="16" r="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <circle cx="50" cy="48" r="8" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M21 28l22-10M21 36l22 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="tf-queue" viewBox="0 0 64 64">
+    <path d="M12 16h40M12 32h40M12 48h28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <path d="M48 42l8 6-8 6V42z" fill="currentColor"/>
+  </symbol>
+  <symbol id="tf-note" viewBox="0 0 64 64">
+    <path d="M24 48a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="currentColor" stroke-width="2.5" fill="none"/>
+    <path d="M32 40V12l20-4v20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M52 28a7 7 0 1 1-14 0" stroke="currentColor" stroke-width="2.5" fill="none"/>
+  </symbol>
+</svg>

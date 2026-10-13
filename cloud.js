@@ -48,6 +48,17 @@
       .tf-comment-thread h4{font-size:13px;margin:0 0 10px}
       .tf-comment{padding:10px 0;border-bottom:1px solid rgba(100,110,125,.12)}
       .tf-comment p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 5px}
+      .post-author-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:0;font:inherit;color:inherit}
+      .post-author-link:hover{opacity:.75}
+      .tf-listener-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(20,24,32,.42);backdrop-filter:blur(8px)}
+      .tf-listener-modal[hidden]{display:none}
+      .tf-listener-card{width:min(440px,100%);max-height:min(86vh,640px);overflow:auto;padding:24px;border-radius:24px;background:rgba(255,255,255,.94);box-shadow:0 24px 60px rgba(20,30,50,.18);border:1px solid rgba(255,255,255,.7)}
+      .tf-listener-card h2{margin:0 0 6px;font:800 26px/1.15 Manrope,sans-serif;letter-spacing:-.8px}
+      .tf-listener-card .tf-listener-bio{color:#6b7280;font-size:13px;line-height:1.7;margin:0 0 14px;white-space:pre-wrap}
+      .tf-listener-meta{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 16px;font-size:12px;color:#657080}
+      .tf-listener-meta strong{display:block;font-size:18px;color:#1f2937}
+      .tf-listener-actions{display:flex;gap:10px;flex-wrap:wrap}
+      .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px}
       .tf-comment small{font-size:11px;color:#737d8b}
       .tf-reply{margin:8px 0 8px 14px;padding:8px 10px;border-left:2px solid rgba(100,110,125,.3);font-size:13px}
       .tf-comment-thread textarea{box-sizing:border-box;width:100%;margin:10px 0 8px;resize:vertical}
@@ -256,10 +267,16 @@
       const top = el("div", "post-top");
       const avatar = el("div", "post-avatar", (post.author_name || "L").slice(0, 1).toUpperCase());
       const who = el("div");
-      who.append(el("div", "post-author", post.author_name || "Listener"),
-        el("div", "post-time", new Date(post.created_at).toLocaleString()));
+      const authorBtn = el("button", "post-author post-author-link", post.author_name || "Listener");
+      authorBtn.type = "button";
+      authorBtn.title = "View listener profile";
+      authorBtn.addEventListener("click", () => openListenerProfile(post.user_id, post.author_name));
+      who.append(authorBtn, el("div", "post-time", new Date(post.created_at).toLocaleString()));
       const tag = el("span", "post-category", post.category);
       top.append(avatar, who, tag);
+      avatar.style.cursor = "pointer";
+      avatar.title = "View listener profile";
+      avatar.addEventListener("click", () => openListenerProfile(post.user_id, post.author_name));
       const body = el("p", "post-body", post.body);
       const foot = el("div", "post-footer");
       foot.append(el("span", "", "SHARED COMMUNITY"));
@@ -330,6 +347,132 @@
       thread.append(input, send);
       card.append(top, body, foot, thread); box.append(card);
     });
+  }
+  async function ensureOwnProfile() {
+    if (!client || !currentUser) return;
+    const profile = localRead("profile") || {};
+    const displayName = String(profile.name || currentUser.email?.split("@")[0] || "Listener").trim().slice(0, 32) || "Listener";
+    const bio = String(profile.bio || "").slice(0, 240);
+    const { data: existing } = await client.from("listener_profiles").select("user_id").eq("user_id", currentUser.id).maybeSingle();
+    if (existing) {
+      await client.from("listener_profiles").update({
+        display_name: displayName,
+        bio,
+        is_public: true,
+        updated_at: new Date().toISOString()
+      }).eq("user_id", currentUser.id);
+    } else {
+      await client.from("listener_profiles").insert({
+        user_id: currentUser.id,
+        display_name: displayName,
+        bio,
+        is_public: true
+      });
+    }
+  }
+  function ensureListenerModal() {
+    let modal = $("tf-listener-modal");
+    if (modal) return modal;
+    modal = document.createElement("div");
+    modal.id = "tf-listener-modal";
+    modal.className = "tf-listener-modal";
+    modal.hidden = true;
+    modal.innerHTML = `<div class="tf-listener-card" role="dialog" aria-modal="true" aria-labelledby="tf-listener-name">
+      <div class="tf-listener-avatar" id="tf-listener-avatar">L</div>
+      <h2 id="tf-listener-name">Listener</h2>
+      <p class="tf-listener-bio" id="tf-listener-bio"></p>
+      <div class="tf-listener-meta">
+        <div><strong id="tf-listener-followers">0</strong>Followers</div>
+        <div><strong id="tf-listener-following">0</strong>Following</div>
+        <div><strong id="tf-listener-posts">0</strong>Posts</div>
+      </div>
+      <div class="tf-listener-actions">
+        <button type="button" class="primary-button" id="tf-listener-follow">Follow</button>
+        <button type="button" class="text-action" id="tf-listener-close">Close</button>
+      </div>
+      <p class="small-note" id="tf-listener-status" role="status"></p>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", e => { if (e.target === modal) closeListenerProfile(); });
+    $("tf-listener-close")?.addEventListener("click", closeListenerProfile);
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && modal && !modal.hidden) closeListenerProfile();
+    });
+    return modal;
+  }
+  function closeListenerProfile() {
+    const modal = $("tf-listener-modal");
+    if (modal) modal.hidden = true;
+  }
+  async function openListenerProfile(userId, fallbackName) {
+    if (!client || !userId) { status("Profiles require a configured Supabase project."); return; }
+    const modal = ensureListenerModal();
+    modal.hidden = false;
+    $("tf-listener-name").textContent = fallbackName || "Listener";
+    $("tf-listener-avatar").textContent = String(fallbackName || "L").slice(0, 1).toUpperCase();
+    $("tf-listener-bio").textContent = "Loading profile…";
+    $("tf-listener-followers").textContent = "–";
+    $("tf-listener-following").textContent = "–";
+    $("tf-listener-posts").textContent = "–";
+    $("tf-listener-status").textContent = "";
+    const followBtn = $("tf-listener-follow");
+    followBtn.disabled = true;
+    followBtn.textContent = "…";
+    followBtn.onclick = null;
+    try {
+      const [{ data: profile }, { count: followers }, { count: following }, { count: posts }, followCheck] = await Promise.all([
+        client.from("listener_profiles").select("display_name,bio,is_public,avatar_url").eq("user_id", userId).maybeSingle(),
+        client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
+        client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
+        client.from("community_posts").select("*", { count: "exact", head: true }).eq("user_id", userId),
+        currentUser
+          ? client.from("listener_follows").select("follower_id").eq("follower_id", currentUser.id).eq("followed_id", userId).maybeSingle()
+          : Promise.resolve({ data: null })
+      ]);
+      const name = profile?.display_name || fallbackName || "Listener";
+      $("tf-listener-name").textContent = name;
+      $("tf-listener-avatar").textContent = name.slice(0, 1).toUpperCase();
+      $("tf-listener-bio").textContent = profile?.bio || "No public bio yet.";
+      $("tf-listener-followers").textContent = String(followers ?? 0);
+      $("tf-listener-following").textContent = String(following ?? 0);
+      $("tf-listener-posts").textContent = String(posts ?? 0);
+      const isSelf = currentUser && currentUser.id === userId;
+      const isFollowing = Boolean(followCheck?.data);
+      if (isSelf) {
+        followBtn.textContent = "Your profile";
+        followBtn.disabled = true;
+      } else if (!currentUser) {
+        followBtn.textContent = "Sign in to follow";
+        followBtn.disabled = true;
+      } else {
+        followBtn.disabled = false;
+        followBtn.textContent = isFollowing ? "Following ✓" : "＋ Follow";
+        followBtn.setAttribute("aria-pressed", String(isFollowing));
+        followBtn.onclick = async () => {
+          followBtn.disabled = true;
+          try {
+            if (isFollowing) {
+              const { error } = await client.from("listener_follows").delete()
+                .eq("follower_id", currentUser.id).eq("followed_id", userId);
+              if (error) throw error;
+            } else {
+              const { error } = await client.from("listener_follows").insert({
+                follower_id: currentUser.id, followed_id: userId
+              });
+              if (error) throw error;
+            }
+            await openListenerProfile(userId, name);
+          } catch (e) {
+            $("tf-listener-status").textContent = e.message || "Could not update follow.";
+            followBtn.disabled = false;
+          }
+        };
+      }
+    } catch (e) {
+      $("tf-listener-bio").textContent = "Could not load this profile.";
+      $("tf-listener-status").textContent = e.message || "Check Supabase configuration and RLS.";
+      followBtn.textContent = "Unavailable";
+    }
   }
   async function loadCommunity() {
     if (!client) return;
@@ -416,7 +559,7 @@
       if (error) throw error;
       if (data.session) {
         currentUser = data.session.user; renderSignedIn(currentUser);
-        try { await loadAccountData(); } catch (e) { status("Signed in, but account sync failed: " + (e.message || "check database setup.")); }
+        try { await loadAccountData(); await ensureOwnProfile(); } catch (e) { status("Signed in, but account sync failed: " + (e.message || "check database setup.")); }
       }
     } catch (e) { status("Could not restore sign-in session: " + (e.message || "try refreshing.")); }
     client.auth.onAuthStateChange((event, session) => {
@@ -424,7 +567,7 @@
         currentUser = session.user; renderSignedIn(currentUser);
         // Defer Supabase work outside the auth callback to avoid lock contention.
         setTimeout(async () => {
-          try { await loadAccountData(); } catch (e) { status("Account sync failed: " + (e.message || "check database setup.")); }
+          try { await loadAccountData(); await ensureOwnProfile(); } catch (e) { status("Account sync failed: " + (e.message || "check database setup.")); }
           await loadCommunity();
         }, 0);
       } else if (event === "SIGNED_OUT") {

@@ -1,0 +1,12 @@
+/* Phase 11 — lyric-aware search results */
+.tf-lyrics-search-result{display:flex;align-items:center;gap:13px;padding:12px;min-width:0;cursor:default}
+.tf-lyrics-search-art{width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;overflow:hidden;border-radius:14px;background:linear-gradient(145deg,#f9fafb,#dfe3ea);color:#686f7c;font-size:24px;font-weight:800;box-shadow:inset 2px 2px 6px #fff,inset -3px -3px 8px #b6bdca55}
+.tf-lyrics-search-art img{width:100%;height:100%;object-fit:cover}
+.tf-lyrics-search-copy{flex:1;min-width:0}
+.tf-lyrics-search-copy strong{display:block;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.tf-lyrics-search-copy>span{display:block;margin-top:4px;color:#858b96;font-size:10px;line-height:1.5}
+.tf-lyrics-snippet{margin:7px 0 0;color:#666d79;font-size:11px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tf-lyrics-open{display:inline-flex;align-items:center;justify-content:center;flex:none;padding:9px 11px;border:1px solid #ffffffd9;border-radius:12px;background:#ffffff9c;font-size:10px;font-weight:750}
+.tf-lyrics-provider-note{grid-column:1/-1;padding:12px 15px;border-radius:14px;background:#ffffff80;color:#747b88;font-size:11px}
+.search-filter[aria-pressed="true"]{background:#292c33;color:#fff}
+@media(max-width:650px){.tf-lyrics-search-result{gap:10px;padding:10px}.tf-lyrics-search-art{width:48px;height:48px;flex-basis:48px}.tf-lyrics-open{padding:8px;font-size:9px}.tf-lyrics-snippet{-webkit-line-clamp:3}}

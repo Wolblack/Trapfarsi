@@ -1,5 +1,5 @@
-const CACHE_NAME = "trapfarsi-shell-v3";
-const APP_SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg", "./supabase-config.js", "./cloud.js"];
+const CACHE_NAME = "trapfarsi-shell-v11";
+const APP_SHELL = ["./", "./index.html", "./manifest.json", "./icon.svg", "./supabase-config.js", "./cloud.js", "./studio.js", "./phase08.js", "./i18n.js", "./phase09.js", "./phase10.js", "./phase11.js", "./phase11.css", "./phase12.js", "./phase12.css", "./icons/logo-app.svg", "./icons/logo-mark.svg", "./icons/trapfarsi-icons.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });

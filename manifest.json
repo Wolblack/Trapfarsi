@@ -1,5 +1,5 @@
 {
-  "name": "TRAPFARSI — Music, with intention",
+  "name": "TRAPFARSI \u2014 Music, with intention",
   "short_name": "TRAPFARSI",
   "description": "A considered space for music discovery, releases, artists, and your local audio.",
   "start_url": "./",
@@ -13,6 +13,12 @@
     "entertainment"
   ],
   "icons": [
+    {
+      "src": "./icons/logo-app.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "./icon.svg",
       "sizes": "any",

@@ -284,3 +284,66 @@ drop trigger if exists trapfarsi_touch_listener_data_before_write on public.list
 create trigger trapfarsi_touch_listener_data_before_write
 before insert or update on public.listener_data
 for each row execute function public.trapfarsi_touch_listener_data();
+
+-- Server-side rate limiting for the public-facing lyrics-search Edge Function.
+-- Only hashed request fingerprints are stored; raw IP addresses are never written.
+create table if not exists public.trapfarsi_api_rate_limits (
+  fingerprint text primary key check (char_length(fingerprint) between 32 and 64),
+  window_started_at timestamptz not null default clock_timestamp(),
+  request_count integer not null default 0 check (request_count >= 0),
+  updated_at timestamptz not null default clock_timestamp()
+);
+create index if not exists trapfarsi_api_rate_limits_updated_at_idx
+  on public.trapfarsi_api_rate_limits (updated_at);
+alter table public.trapfarsi_api_rate_limits enable row level security;
+revoke all on public.trapfarsi_api_rate_limits from anon, authenticated;
+grant all on public.trapfarsi_api_rate_limits to service_role;
+
+create or replace function public.trapfarsi_check_and_increment_rate_limit(
+  p_fingerprint text,
+  p_window_seconds integer default 60,
+  p_limit integer default 12
+)
+returns table (allowed boolean, retry_after_seconds integer)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_now timestamptz := clock_timestamp();
+  v_window_started timestamptz;
+  v_count integer;
+  v_window_seconds integer := greatest(1, least(coalesce(p_window_seconds, 60), 3600));
+  v_limit integer := greatest(1, least(coalesce(p_limit, 12), 1000));
+begin
+  if p_fingerprint is null or char_length(p_fingerprint) < 32 or char_length(p_fingerprint) > 64 then
+    return query select false, 60;
+    return;
+  end if;
+
+  insert into public.trapfarsi_api_rate_limits as r (fingerprint, window_started_at, request_count, updated_at)
+  values (p_fingerprint, v_now, 1, v_now)
+  on conflict (fingerprint) do update set
+    window_started_at = case
+      when r.window_started_at <= v_now - make_interval(secs => v_window_seconds) then v_now
+      else r.window_started_at
+    end,
+    request_count = case
+      when r.window_started_at <= v_now - make_interval(secs => v_window_seconds) then 1
+      else r.request_count + 1
+    end,
+    updated_at = v_now
+  returning r.window_started_at, r.request_count into v_window_started, v_count;
+
+  -- Opportunistic cleanup: old hashes have no use after a day.
+  if random() < 0.03 then
+    delete from public.trapfarsi_api_rate_limits where updated_at < v_now - interval '24 hours';
+  end if;
+
+  return query select
+    v_count <= v_limit,
+    greatest(0, ceil(extract(epoch from (v_window_started + make_interval(secs => v_window_seconds) - v_now)))::integer);
+end;
+$$;
+revoke all on function public.trapfarsi_check_and_increment_rate_limit(text, integer, integer) from public, anon, authenticated;
+grant execute on function public.trapfarsi_check_and_increment_rate_limit(text, integer, integer) to service_role;

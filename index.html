@@ -8,7 +8,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="stylesheet" href="./phase11.css">
+<link rel="stylesheet" href="./phase12.css">
 <meta name="description" content="TRAPFARSI — an editorial home for Persian rap, underground sounds, and music discovery.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TRAPFARSI">
+<meta property="og:title" content="TRAPFARSI — Music, with intention.">
+<meta property="og:description" content="Persian rap. Underground voices. Records with a point of view.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TRAPFARSI — Music, with intention.">
+<meta name="twitter:description" content="Persian rap. Underground voices. Records with a point of view.">
+<meta name="color-scheme" content="light dark">
 <title>TRAPFARSI — Music, with intention.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -88,6 +99,7 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 <div class="shell">
 <header class="topbar glass">
 <a class="brand" href="#home" aria-label="TRAPFARSI home"><span class="brand-mark">T.</span>TRAPFARSI<span>®</span></a>
@@ -100,7 +112,7 @@
 </div>
 </header>
 <nav class="mobile-nav glass" aria-label="Mobile navigation"><button class="nav-link active" data-route="home"><span>⌂</span>Home</button><button class="nav-link" data-route="releases"><span>◷</span>Releases</button><button class="nav-link" data-route="artists"><span>◉</span>Artists</button><button class="nav-link" data-route="library"><span>▤</span>Library</button><button class="nav-link" data-route="search"><span>⌕</span>Search</button></nav>
-<main>
+<main id="main-content" tabindex="-1">
 <section class="page active" id="page-home" data-page="home">
 <div class="welcome"><div><div class="eyebrow">THE SOUND UNDER THE SURFACE</div><h1>Find your <span>own frequency.</span></h1><p>Persian rap. Underground voices. Records with a point of view. Find the sound that stays with you.</p></div><div class="date-chip glass"><span class="live-dot"></span> INDEPENDENT SOUND · EST. NOW</div></div>
 <div class="hero-grid">
@@ -138,7 +150,7 @@
 <div id="artist-profile-content"></div>
 </section>
 <section class="page" id="page-library" data-page="library"><div class="route-heading"><div class="eyebrow">YOUR PERSONAL SPACE · PHASE 04</div><h1>Your <span style="color:#999eaa;font-weight:500">library.</span></h1><p>Keep favourite releases, followed artists, and recent searches together. Saved data stays in this browser.</p></div><div class="library-summary"><div class="library-stat glass"><strong id="saved-count">00</strong><span>SAVED RELEASES</span></div><div class="library-stat glass"><strong id="followed-count">00</strong><span>FOLLOWED ARTISTS</span></div><div class="library-stat glass"><strong id="history-count">00</strong><span>RECENT SEARCHES</span></div></div><div class="library-tabs"><button class="library-tab active" data-library-tab="saved">Saved releases</button><button class="library-tab" data-library-tab="artists">Followed artists</button><button class="library-tab" data-library-tab="history">Recent searches</button></div><div id="library-list" class="library-list"></div><div id="library-empty" class="library-empty glass"><h2>Your library is ready.</h2><p>Search for a release or follow an artist to start building your collection.</p><button class="primary-button" data-route="releases">Explore releases ↗</button></div><div class="release-disclaimer">SAVED LOCALLY IN THIS BROWSER · NO ACCOUNT OR CLOUD SYNC IN THIS DEMO</div></section>
-<section class="page" id="page-search" data-page="search"><div class="route-heading"><div class="eyebrow">FIND YOUR NEXT FAVOURITE · PHASE 04</div><h1>Search <span style="color:#999eaa;font-weight:500">everything.</span></h1><p>Search across artists, releases, genres, and years. Filter the results and save what you want to revisit.</p></div><div class="search-toolbar"><label class="search-box glass"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input id="search-field" type="search" placeholder="Try an artist, genre, or year…" autocomplete="off" aria-label="Search all content"></label><span id="search-count" class="search-count">Demo catalogue</span></div><div class="search-filters"><button class="search-filter active" data-search-type="All">Everything</button><button class="search-filter" data-search-type="Release">Releases</button><button class="search-filter" data-search-type="Artist">Artists</button></div><div id="search-results" class="search-results" aria-live="polite"></div><div class="search-empty glass visible" id="search-empty">Enter a name, genre, or year to search the demo catalogue.</div><div class="release-disclaimer">DEMO CATALOGUE · ARTWORK AND METADATA ARE PLACEHOLDERS</div></section>
+<section class="page" id="page-search" data-page="search"><div class="route-heading"><div class="eyebrow">FIND YOUR NEXT FAVOURITE · PHASE 04</div><h1>Search <span style="color:#999eaa;font-weight:500">everything.</span></h1><p>Search across artists, releases, genres, and years. Filter the results and save what you want to revisit.</p></div><div class="search-toolbar"><label class="search-box glass"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input id="search-field" type="search" placeholder="Try an artist, genre, or year…" autocomplete="off" aria-label="Search all content"></label><span id="search-count" class="search-count">Demo catalogue</span></div><div class="search-filters"><button class="search-filter active" data-search-type="All">Everything</button><button class="search-filter" data-search-type="Release">Releases</button><button class="search-filter" data-search-type="Artist">Artists</button><button class="search-filter" data-search-type="Lyrics">Lyrics</button></div><div id="search-results" class="search-results" aria-live="polite"></div><div class="search-empty glass visible" id="search-empty">Enter a name, genre, or year to search the demo catalogue.</div><div class="release-disclaimer">DEMO CATALOGUE · ARTWORK AND METADATA ARE PLACEHOLDERS</div></section>
 <section class="page" id="page-album" data-page="album"><div id="album-detail" class="album-detail-wrap"></div></section>
 <section class="page" id="page-now-playing" data-page="now-playing"><div class="now-playing-layout"><div class="now-playing-art glass"><img id="np-art" src="" alt="Current release artwork"></div><div class="now-playing-main"><div class="eyebrow">TRAPFARSI LISTENING ROOM · PHASE 05</div><h1 id="np-title">Nothing playing yet.</h1><p id="np-artist" class="np-artist">Choose a release from the catalogue.</p><div class="np-controls"><button class="player-control" data-player="previous" aria-label="Previous track">Ⅱ◀</button><button class="player-main-toggle" data-player="toggle" aria-label="Play or pause">▶</button><button class="player-control" data-player="next" aria-label="Next track">▶Ⅱ</button></div><div class="np-progress"><span id="np-current">0:00</span><input id="np-seek" type="range" min="0" max="180" value="0" aria-label="Seek position"><span id="np-duration">3:00</span></div><div class="np-volume"><span>VOLUME</span><input id="np-volume" type="range" min="0" max="100" value="70" aria-label="Volume"><span id="np-volume-value">70%</span></div><div class="local-audio-tools"><button class="secondary-button" id="tf-import-audio" type="button">＋ Import audio files</button><input id="tf-audio-files" type="file" accept="audio/*" multiple hidden><span class="np-note" id="tf-audio-status">Import audio files from your device. Files stay on your device.</span></div></div><section class="np-queue glass"><div class="section-head"><div><h2>Up next</h2><p>Demo queue from the selected release</p></div><span class="pill">QUEUE</span></div><div id="np-queue-list"></div></section></div></section>
 
@@ -146,7 +158,7 @@
 <section class="page" id="page-community" data-page="community"><div class="route-heading"><div class="eyebrow">THE LISTENERS' ROOM</div><h1>Talk about <span>the sound.</span></h1><p>Start conversations around US rap, Persian rap, R&B, rock, and new releases.</p></div><div class="community-layout"><section class="glass community-compose"><label class="field-label" for="tf-post-category">CHANNEL</label><select class="community-input" id="tf-post-category"><option>US Rap</option><option>Persian Rap</option><option>R&B</option><option>Rock & Alternative</option><option>New Releases</option><option>Music Talk</option></select><label class="field-label" for="tf-post-text">YOUR POST</label><textarea class="community-input" id="tf-post-text" maxlength="600" rows="4" placeholder="Start a music conversation…"></textarea><div class="compose-bottom"><span id="tf-post-counter">0 / 600</span><button class="primary-button" id="tf-post-submit">Publish post</button></div><p class="small-note">With Supabase configured, sign in to publish posts visible to other listeners. Without it, posts remain a local preview.</p></section><section class="community-feed"><div class="community-feed-head"><h2>Community feed</h2><select class="community-input" id="tf-feed-filter"><option>All topics</option><option>US Rap</option><option>Persian Rap</option><option>R&B</option><option>Rock & Alternative</option><option>New Releases</option><option>Music Talk</option></select></div><div id="tf-community-posts"></div></section></div></section>
 <section class="page" id="page-lyrics" data-page="lyrics"><div class="route-heading"><div class="eyebrow">LISTEN CLOSELY</div><h1>Lyrics <span>room.</span></h1><p>Write your own lyrics, translations, annotations, or listening notes for the current track.</p></div><section class="glass lyrics-card"><div class="lyrics-track-head"><img id="tf-lyrics-art" src="" alt=""><div><span class="eyebrow">CURRENT TRACK</span><h2 id="tf-lyrics-title">Nothing selected</h2><p id="tf-lyrics-artist">Choose a track in the player.</p></div></div><label class="field-label" for="tf-lyrics-text">YOUR LYRICS / NOTES</label><textarea class="community-input lyrics-editor" id="tf-lyrics-text" rows="12" maxlength="12000" placeholder="Write lyrics you created or notes you want to keep…"></textarea><div class="compose-bottom"><span id="tf-lyrics-status">Saved locally per track</span><button class="primary-button" id="tf-lyrics-save">Save notes</button></div><p class="small-note">This does not fetch copyrighted lyrics. Notes are stored in this browser.</p></section></section>
 </main>
-<footer class="footer"><span><strong>TRAPFARSI</strong> · MUSIC, WITH INTENTION</span><span>PHASE 07 / LISTENER FEATURES <span class="phase-tag">· BUILD IN PROGRESS</span></span></footer>
+<footer class="footer"><span><strong>TRAPFARSI</strong> · MUSIC, WITH INTENTION</span><span>INDEPENDENT MUSIC CULTURE <span class="phase-tag">· LOCAL-FIRST PREVIEW</span></span></footer>
 </div>
 <div class="mini-player" id="mini-player" aria-label="Playback controls"><img id="mini-art" src="" alt=""><button class="mini-track" id="mini-open" aria-label="Open now playing"><strong id="mini-title">Choose a release</strong><span id="mini-artist">TRAPFARSI demo player</span></button><button class="mini-action" data-player="toggle" id="mini-toggle" aria-label="Play or pause">▶</button><button class="mini-action" data-player="next" aria-label="Next track">▶|</button><div class="mini-player-progress"><span id="mini-progress"></span></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -222,7 +234,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-player]");
 $("mini-open").addEventListener("click",()=>{location.hash="now-playing";tfRenderPlayer()});
 $("np-seek").addEventListener("input",e=>{tfPlayer.seconds=Number(e.target.value);tfRenderPlayer()});
 $("np-volume").addEventListener("input",tfRenderPlayer);
-setInterval(()=>{if(tfPlayer.playing){tfPlayer.seconds++;if(tfPlayer.seconds>=tfPlayer.duration){if(tfPlayer.trackIndex<tfPlayer.queue.length-1)tfPlayTrack(tfPlayer.trackIndex+1);else{tfPlayer.playing=false;tfPlayer.seconds=tfPlayer.duration;tfRenderPlayer()}}else tfRenderPlayer()}},1000);
+// Real audio progress is driven by HTMLAudioElement timeupdate events. Demo catalogue entries do not simulate listening time.
 
 
 /* Phase 06: optional local audio playback; files are not uploaded. */
@@ -266,6 +278,12 @@ tfLocalAudio.addEventListener("timeupdate", () => {
   if (progress) progress.style.width = (tfPlayer.duration ? tfPlayer.seconds / tfPlayer.duration * 100 : 0) + "%";
 });
 tfLocalAudio.addEventListener("ended", () => {
+  if (window.TRAPFARSI_STOP_AT_TRACK_END) {
+    window.TRAPFARSI_STOP_AT_TRACK_END = false;
+    tfPlayer.playing = false;
+    tfRenderPlayer();
+    return;
+  }
   if (tfLocalMode && tfPlayer.trackIndex < tfPlayer.queue.length - 1) tfPlayLocalTrack(tfPlayer.trackIndex + 1);
   else { tfPlayer.playing = false; tfRenderPlayer(); }
 });
@@ -315,7 +333,7 @@ function tfEvaluateTrophies(){const st=tfFeatureStats(),favorites=tfReadFeature(
 {id:"one-hour",name:"One-Hour Club",desc:"Listen for 60 minutes",ok:st.seconds>=3600,icon:"◷"},
 {id:"crate-digger",name:"Crate Digger",desc:"Save 5 favourites",ok:favorites.length>=5,icon:"▤"},
 {id:"scout",name:"Scene Scout",desc:"Follow 3 artists",ok:following.length>=3,icon:"✳"},
-{id:"collector",name:"Archive Keeper",desc:"Build a 20-track history",ok:history.length>=20,icon:"⌁"}];
+{id:"collector",name:"Archive Keeper",desc:"Build a 20-track history",ok:history.filter(x=>x&&x.artist==="Local audio"&&!x.legacyUnverified).length>=20,icon:"⌁"}];
 const earned=tfReadFeature("earned",[]);const newly=definitions.filter(d=>d.ok&&!earned.includes(d.id));if(newly.length){tfWriteFeature("earned",[...earned,...newly.map(d=>d.id)]);if(earned.length)toast("Trophy unlocked: "+newly[0].name)}return definitions.map(d=>({...d,earned:d.ok||earned.includes(d.id)}))}
 function tfToggleCollection(key,id){const list=tfReadFeature(key,[]),i=list.indexOf(id);if(i>=0)list.splice(i,1);else list.push(id);tfWriteFeature(key,list);tfEvaluateTrophies();tfRenderListenerHub()}
 function tfDuration(n){n=Math.max(0,Math.floor(n||0));return Math.floor(n/60)+"h "+String(n%60).padStart(2,"0")+"m"}
@@ -324,7 +342,7 @@ const head=document.createElement("div");head.className="section-head";head.inne
 const stats=document.createElement("div");stats.className="tf-stat-grid";[[st.plays,"Track starts"],[tfDuration(st.seconds),"Listening time"],[fav.length,"Favourites"],[following.length,"Following"]].forEach(([v,l])=>{const c=document.createElement("article");c.className="tf-feature-card";const value=document.createElement("strong");value.textContent=v;const label=document.createElement("span");label.textContent=l;c.append(value,label);stats.append(c)});root.append(stats);
 const columns=document.createElement("div");columns.className="tf-feature-columns";
 const rewards=document.createElement("section");rewards.className="tf-feature-panel";const rh=document.createElement("div");rh.className="tf-feature-panel-head";rh.innerHTML="<div><h3>Trophies & rewards</h3><p>"+earned.length+" of "+trophies.length+" achievements unlocked</p></div><span>🏆</span>";rewards.append(rh);const trophyGrid=document.createElement("div");trophyGrid.className="tf-trophy-grid";trophies.forEach(t=>{const item=document.createElement("div");item.className="tf-trophy"+(t.earned?" unlocked":"");const icon=document.createElement("span");icon.className="tf-trophy-icon";icon.textContent=t.icon;const name=document.createElement("strong");name.textContent=t.name;const desc=document.createElement("small");desc.textContent=t.desc;item.append(icon,name,desc);trophyGrid.append(item)});rewards.append(trophyGrid);
-const recent=document.createElement("section");recent.className="tf-feature-panel";const hh=document.createElement("div");hh.className="tf-feature-panel-head";hh.innerHTML="<div><h3>Recently played</h3><p>Most recent track starts</p></div><span>↻</span>";recent.append(hh);if(!history.length){const empty=document.createElement("p");empty.className="tf-feature-empty";empty.textContent="Play a track to start building your listening history.";recent.append(empty)}else history.slice(0,8).forEach(x=>{const row=document.createElement("div");row.className="tf-feature-row";const label=document.createElement("div");const title=document.createElement("strong");title.textContent=x.title;const meta=document.createElement("small");meta.textContent=x.artist+" · "+new Date(x.at).toLocaleDateString();label.append(title,meta);row.append(label);recent.append(row)});columns.append(rewards,recent);root.append(columns);
+const recent=document.createElement("section");recent.className="tf-feature-panel";const hh=document.createElement("div");hh.className="tf-feature-panel-head";hh.innerHTML="<div><h3>Recently played</h3><p>Most recent track starts</p></div><span>↻</span>";recent.append(hh);if(!history.length){const empty=document.createElement("p");empty.className="tf-feature-empty";empty.textContent="Play a track to start building your listening history.";recent.append(empty)}else history.slice(0,8).forEach(x=>{const row=document.createElement("div");row.className="tf-feature-row";const label=document.createElement("div");const title=document.createElement("strong");title.textContent=x.title;const meta=document.createElement("small");meta.textContent=x.legacyUnverified?"Legacy demo activity · not verified":(x.artist+" · "+(x.at?new Date(x.at).toLocaleDateString():"Date unavailable"));label.append(title,meta);row.append(label);recent.append(row)});columns.append(rewards,recent);root.append(columns);
 const pickers=document.createElement("div");pickers.className="tf-feature-columns";
 const favPanel=document.createElement("section");favPanel.className="tf-feature-panel";const fh=document.createElement("div");fh.className="tf-feature-panel-head";fh.innerHTML="<div><h3>Favourites</h3><p>Save albums to your personal crate</p></div><span>♥</span>";favPanel.append(fh);albums.forEach(a=>{const row=document.createElement("div");row.className="tf-feature-row";const label=document.createElement("div");const title=document.createElement("strong");title.textContent=a.title;const meta=document.createElement("small");meta.textContent=a.artist;label.append(title,meta);const btn=document.createElement("button");btn.className="tf-feature-action";btn.textContent=fav.includes(a.title)?"♥ Saved":"＋ Save";btn.setAttribute("aria-pressed",String(fav.includes(a.title)));btn.onclick=()=>tfToggleCollection("favorites",a.title);row.append(label,btn);favPanel.append(row)});if(fav.length){const saved=document.createElement("p");saved.className="tf-feature-note";saved.textContent="In your crate: "+fav.join(" · ");favPanel.append(saved)}
 const followPanel=document.createElement("section");followPanel.className="tf-feature-panel";const ah=document.createElement("div");ah.className="tf-feature-panel-head";ah.innerHTML="<div><h3>Follow artists</h3><p>Build a personal artist radar</p></div><span>✳</span>";followPanel.append(ah);artists.forEach(a=>{const name=a.name||a.title;if(!name)return;const row=document.createElement("div");row.className="tf-feature-row";const label=document.createElement("div");const title=document.createElement("strong");title.textContent=name;const meta=document.createElement("small");meta.textContent=a.kind||"Artist";label.append(title,meta);const btn=document.createElement("button");btn.className="tf-feature-action";btn.textContent=following.includes(name)?"Following ✓":"＋ Follow";btn.setAttribute("aria-pressed",String(following.includes(name)));btn.onclick=()=>tfToggleCollection("following",name);row.append(label,btn);followPanel.append(row)});pickers.append(favPanel,followPanel);root.append(pickers);
@@ -340,5 +358,12 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 }
 </script>
 <script src="./cloud.js"></script>
+<script src="./studio.js"></script>
+<script src="./phase08.js"></script>
+<script src="./i18n.js"></script>
+<script src="./phase09.js"></script>
+<script src="./phase10.js"></script>
+<script src="./phase11.js"></script>
+<script src="./phase12.js"></script>
 </body>
 </html>
