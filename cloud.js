@@ -29,6 +29,8 @@
   let communityLoadGeneration = 0;
   let communityPostsCache = [];
   let communityPaginationLangBound = false;
+  let communitySearchTimer = null;
+  let communityToolsLangBound = false;
   let profileSyncTimer = null;
   const $ = id => document.getElementById(id);
   const localRead = key => {
@@ -68,6 +70,7 @@
       .tf-listener-actions{display:flex;gap:10px;flex-wrap:wrap}
       .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px;overflow:hidden}
       .tf-listener-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+      .tf-community-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}.tf-community-search{flex:1 1 200px;min-width:0}.tf-community-sort{flex:0 1 170px;min-width:145px}
       .tf-comment small{font-size:11px;color:#737d8b}
       .tf-reply{margin:8px 0 8px 14px;padding:8px 10px;border-left:2px solid rgba(100,110,125,.3);font-size:13px}
       .tf-comment-thread textarea{box-sizing:border-box;width:100%;margin:10px 0 8px;resize:vertical}
@@ -226,6 +229,46 @@
     if (value !== undefined) node.textContent = value;
     return node;
   };
+  function ensureCommunityTools() {
+    const head = document.querySelector(".community-feed-head");
+    if (!head || $("tf-community-tools")) return;
+    const tools = el("div", "tf-community-tools");
+    const search = el("input", "community-input tf-community-search");
+    search.id = "tf-community-search";
+    search.type = "search";
+    search.maxLength = 80;
+    search.autocomplete = "off";
+    search.setAttribute("aria-label", "Search community conversations");
+    search.placeholder = "Search shared conversations…";
+    const sort = el("select", "community-input tf-community-sort");
+    sort.id = "tf-community-sort";
+    sort.setAttribute("aria-label", "Sort community conversations");
+    [["newest", "Newest first"], ["oldest", "Oldest first"]].forEach(([value, label]) => {
+      const option = el("option", "", label); option.value = value; sort.append(option);
+    });
+    tools.append(search, sort);
+    head.insertAdjacentElement("afterend", tools);
+    const dictionary = {
+      en: { search: "Search shared conversations…", sort: "Sort conversations", newest: "Newest first", oldest: "Oldest first" },
+      ru: { search: "Поиск обсуждений…", sort: "Сортировка обсуждений", newest: "Сначала новые", oldest: "Сначала старые" },
+      fa: { search: "جستجوی گفتگوها…", sort: "مرتب‌سازی گفتگوها", newest: "جدیدترین", oldest: "قدیمی‌ترین" }
+    };
+    const applyLabels = () => {
+      const language = window.tfI18n?.getLang?.() || localStorage.getItem("tf_lang_v1") || "en";
+      const fallback = dictionary[language] || dictionary.en;
+      search.placeholder = window.tfI18n?.t?.("community_search_placeholder") || fallback.search;
+      search.setAttribute("aria-label", search.placeholder);
+      sort.setAttribute("aria-label", window.tfI18n?.t?.("community_sort") || fallback.sort);
+      if (sort.options[0]) sort.options[0].textContent = window.tfI18n?.t?.("community_sort_newest") || fallback.newest;
+      if (sort.options[1]) sort.options[1].textContent = window.tfI18n?.t?.("community_sort_oldest") || fallback.oldest;
+    };
+    applyLabels();
+    if (!communityToolsLangBound) {
+      window.addEventListener("tf:lang", applyLabels);
+      setTimeout(applyLabels, 0);
+      communityToolsLangBound = true;
+    }
+  }
   function renderCommunityPagination() {
     const box = $("tf-community-posts");
     if (!box) return;
@@ -604,6 +647,8 @@
     if (append && communityLoading) return;
     const requestGeneration = ++communityLoadGeneration;
     const filter = $("tf-feed-filter")?.value || "All topics";
+    const search = String($("tf-community-search")?.value || "").trim().slice(0, 80);
+    const sort = $("tf-community-sort")?.value === "oldest" ? "oldest" : "newest";
     if (!append) {
       communityOffset = 0;
       communityPostsCache = [];
@@ -615,9 +660,11 @@
     try {
       let query = client.from("community_posts")
         .select("id,user_id,author_name,category,body,created_at,updated_at")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: sort === "oldest" })
         .range(start, start + COMMUNITY_PAGE_SIZE - 1);
       if (filter !== "All topics") query = query.eq("category", filter);
+      // Search executes in Postgres before pagination; input is deliberately bounded.
+      if (search) query = query.ilike("body", "%" + search + "%");
       const { data: pagePosts, error } = await query;
       if (error) throw error;
       if (requestGeneration !== communityLoadGeneration) return;
@@ -687,6 +734,13 @@
     finally { if (button) button.disabled = false; }
   }
   function bindCommunity() {
+    ensureCommunityTools();
+    const communitySearch = $("tf-community-search");
+    communitySearch?.addEventListener("input", () => {
+      clearTimeout(communitySearchTimer);
+      communitySearchTimer = setTimeout(() => loadCommunity(), 250);
+    });
+    $("tf-community-sort")?.addEventListener("change", () => loadCommunity());
     const submit = $("tf-post-submit");
     submit?.addEventListener("click", event => {
       // When cloud is configured, never also run the local-preview handler.
