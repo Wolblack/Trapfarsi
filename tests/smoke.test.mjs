@@ -277,3 +277,51 @@ test("page includes social metadata and a keyboard skip link", () => {
   assert.match(html, /<main id="main-content" tabindex="-1">/);
   assert.match(read("phase12.css"), /prefers-reduced-motion:reduce/);
 });
+
+
+test("Phase 13 profile metadata controls preserve the existing page shell", () => {
+  const html = read("index.html");
+  const module = read("phase13.js");
+  const pkg = JSON.parse(read("package.json"));
+  assert.match(html, /<script src="\.\/phase13\.js"><\/script>/);
+  assert.match(module, /tf13-public/);
+  assert.match(module, /stopImmediatePropagation/);
+  assert.match(module, /handle/);
+  assert.match(module, /location/);
+  assert.match(module, /genres/);
+  assert.match(module, /tf:lang/);
+  assert.match(pkg.scripts.check, /phase13\.js/);
+});
+
+test("shared community uses bounded pagination and aggregate-only like totals", () => {
+  const cloud = read("cloud.js");
+  const migration = read("supabase/migrations/20261014_trapfarsi_community_profiles.sql");
+  assert.match(cloud, /COMMUNITY_PAGE_SIZE = 30/);
+  assert.match(cloud, /\.range\(start, start \+ COMMUNITY_PAGE_SIZE - 1\)/);
+  assert.match(cloud, /communityLoadGeneration/);
+  assert.match(cloud, /community_post_like_counts/);
+  assert.match(cloud, /tf-community-load-more/);
+  assert.match(migration, /community_post_like_counts/);
+  assert.match(migration, /revoke all on function public\.community_post_like_counts/);
+  assert.match(migration, /cardinality\(p_post_ids\).*between 1 and 100/s);
+});
+
+test("profile updates preserve visibility and synchronize same-tab metadata", () => {
+  const cloud = read("cloud.js");
+  const migration = read("supabase/migrations/20261014_trapfarsi_community_profiles.sql");
+  assert.match(cloud, /is_public: isPublic/);
+  assert.match(cloud, /scheduleOwnProfileSync\(\)/);
+  assert.match(cloud, /This listener keeps their profile private/);
+  assert.match(cloud, /listener_follow_counts/);
+  assert.match(migration, /listener_profiles_username_lower_uidx/);
+  assert.match(migration, /Listeners can read permitted follow graph/);
+  assert.match(migration, /grant execute on function public\.listener_follow_counts\(uuid\) to anon, authenticated/);
+});
+
+test("community pagination labels are localized in all supported languages", () => {
+  const i18n = read("i18n.js");
+  assert.equal((i18n.match(/community_load_more:/g) || []).length, 3);
+  assert.equal((i18n.match(/community_loading:/g) || []).length, 3);
+  assert.match(i18n, /گفتگوهای بیشتر/);
+  assert.match(i18n, /Загрузить ещё обсуждения/);
+});
