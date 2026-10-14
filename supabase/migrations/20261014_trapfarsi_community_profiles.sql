@@ -104,7 +104,7 @@ as $$
   );
 $$;
 revoke all on function public.listener_follow_counts(uuid) from public;
-grant execute on function public.listener_follow_counts(uuid) to authenticated;
+grant execute on function public.listener_follow_counts(uuid) to anon, authenticated;
 
 comment on function public.community_post_like_counts(uuid[]) is
   'Returns like totals for up to 100 community post IDs without exposing liker identities.';
