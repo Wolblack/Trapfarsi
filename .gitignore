@@ -1,0 +1,25 @@
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Node / build output
+node_modules/
+dist/
+build/
+coverage/
+
+# Local operating-system/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Deployment and test artifacts
+.netlify/
+.vercel/
+playwright-report/
+test-results/

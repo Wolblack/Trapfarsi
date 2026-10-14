@@ -116,3 +116,12 @@ The proxy uses a database-backed limit of 12 requests per IP fingerprint per 60-
 - **Search polish.** The lyric filter is now registered only once; Persian/Arabic text normalization and optional licensed provider integration remain in Phase 11.
 
 Persistent audio relies on browser IndexedDB. If the browser blocks it or storage is exhausted, temporary local playback remains available. IndexedDB persistence has not been browser-compatibility tested across every device/browser; verify it on the target phones and browsers before public launch.
+
+
+## TRAPFARSI product hardening (October 2026)
+
+The profile extension adds a unique username, optional location, favourite genres, an optional avatar URL, and a public/private setting inside the existing profile form. Profile edits synchronize to `listener_profiles` when signed in; the saved public/private setting is preserved. Private profile views hide private details and metrics.
+
+The shared community loads 30 posts per request and supports loading more; topic filtering runs in Supabase before pagination. Like totals are fetched through an aggregate RPC so the UI does not need to retrieve other listeners' identity rows.
+
+After applying the base `supabase-schema.sql`, run `supabase/migrations/20261014_trapfarsi_community_profiles.sql` in Supabase Dashboard → SQL Editor. This migration is version-controlled and does not automatically modify a hosted database. Run `npm test` and `npm run check` after changes.

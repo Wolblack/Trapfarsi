@@ -22,6 +22,14 @@
   let loadGeneration = 0;
   const cloudVersions = new Map();
   const timers = new Map();
+  const COMMUNITY_PAGE_SIZE = 30;
+  let communityOffset = 0;
+  let communityHasMore = false;
+  let communityLoading = false;
+  let communityLoadGeneration = 0;
+  let communityPostsCache = [];
+  let communityPaginationLangBound = false;
+  let profileSyncTimer = null;
   const $ = id => document.getElementById(id);
   const localRead = key => {
     try { const raw = localStorage.getItem(keys[key]); return raw === null ? null : JSON.parse(raw); }
@@ -58,7 +66,8 @@
       .tf-listener-meta{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 16px;font-size:12px;color:#657080}
       .tf-listener-meta strong{display:block;font-size:18px;color:#1f2937}
       .tf-listener-actions{display:flex;gap:10px;flex-wrap:wrap}
-      .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px}
+      .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px;overflow:hidden}
+      .tf-listener-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
       .tf-comment small{font-size:11px;color:#737d8b}
       .tf-reply{margin:8px 0 8px 14px;padding:8px 10px;border-left:2px solid rgba(100,110,125,.3);font-size:13px}
       .tf-comment-thread textarea{box-sizing:border-box;width:100%;margin:10px 0 8px;resize:vertical}
@@ -217,6 +226,36 @@
     if (value !== undefined) node.textContent = value;
     return node;
   };
+  function renderCommunityPagination() {
+    const box = $("tf-community-posts");
+    if (!box) return;
+    let button = $("tf-community-load-more");
+    if (!button) {
+      button = el("button", "secondary-button", "Load more conversations");
+      button.id = "tf-community-load-more";
+      button.type = "button";
+      button.addEventListener("click", () => loadCommunity({ append: true }));
+      box.insertAdjacentElement("afterend", button);
+    }
+    button.hidden = !communityHasMore;
+    button.disabled = communityLoading;
+    const translate = key => window.tfI18n?.t?.(key) || (key === "community_loading" ? "Loading conversations…" : "Load more conversations");
+    button.textContent = translate(communityLoading ? "community_loading" : "community_load_more");
+    button.setAttribute("aria-live", "polite");
+    if (!communityPaginationLangBound) {
+      window.addEventListener("tf:lang", renderCommunityPagination);
+      communityPaginationLangBound = true;
+    }
+  }
+  function scheduleOwnProfileSync() {
+    if (!client || !currentUser) return;
+    clearTimeout(profileSyncTimer);
+    profileSyncTimer = setTimeout(() => {
+      syncOwnProfile(localRead("profile") || {}).catch(error => {
+        status("Profile sync issue: " + (error.message || "check the profile migration and try again."));
+      });
+    }, 300);
+  }
   async function togglePostLike(postId, liked) {
     if (!currentUser) { status("Sign in to like community posts."); return; }
     const result = liked
@@ -252,7 +291,7 @@
     const { error } = await client.from("community_reports").insert({ reporter_id: currentUser.id, post_id: postId, reason: clean });
     status(error ? "Report could not be submitted: " + error.message : "Report submitted for review.");
   }
-  function renderSharedPosts(posts, likes = [], comments = [], saved = new Set()) {
+  function renderSharedPosts(posts, likes = [], comments = [], saved = new Set(), likeCounts = new Map()) {
     const box = $("tf-community-posts");
     if (!box) return;
     box.replaceChildren();
@@ -280,9 +319,10 @@
       const body = el("p", "post-body", post.body);
       const foot = el("div", "post-footer");
       foot.append(el("span", "", "SHARED COMMUNITY"));
-      const postLikes = likes.filter(x => x.post_id === post.id);
       const liked = likedIds.has(post.id);
-      const like = el("button", "text-action", liked ? "♥ Liked" : "♡ Like");
+      const hasLikeCount = likeCounts.has(post.id);
+      const likeCount = hasLikeCount ? likeCounts.get(post.id) : "—";
+      const like = el("button", "text-action", (liked ? "♥ Liked" : "♡ Like") + " · " + String(likeCount));
       like.type = "button"; like.setAttribute("aria-pressed", String(liked));
       like.addEventListener("click", () => togglePostLike(post.id, liked));
       const save = el("button", "text-action", saved.has(post.id) ? "Saved" : "Save");
@@ -348,27 +388,60 @@
       card.append(top, body, foot, thread); box.append(card);
     });
   }
-  async function ensureOwnProfile() {
+  async function syncOwnProfile(profile = localRead("profile") || {}) {
     if (!client || !currentUser) return;
-    const profile = localRead("profile") || {};
+    const userId = currentUser.id;
     const displayName = String(profile.name || currentUser.email?.split("@")[0] || "Listener").trim().slice(0, 32) || "Listener";
     const bio = String(profile.bio || "").slice(0, 240);
-    const { data: existing } = await client.from("listener_profiles").select("user_id").eq("user_id", currentUser.id).maybeSingle();
-    if (existing) {
-      await client.from("listener_profiles").update({
-        display_name: displayName,
-        bio,
-        is_public: true,
-        updated_at: new Date().toISOString()
-      }).eq("user_id", currentUser.id);
-    } else {
-      await client.from("listener_profiles").insert({
-        user_id: currentUser.id,
-        display_name: displayName,
-        bio,
-        is_public: true
-      });
+    const updatedAt = new Date().toISOString();
+    // A legacy local profile has no privacy preference. Preserve the stored
+    // account setting instead of silently making that account public on sign-in.
+    const { data: existingCore, error: existingCoreError } = await client.from("listener_profiles")
+      .select("is_public").eq("user_id", userId).maybeSingle();
+    if (existingCoreError) throw existingCoreError;
+    const isPublic = typeof profile.public === "boolean" ? profile.public : (existingCore?.is_public !== false);
+    const coreWrite = {
+      user_id: userId, display_name: displayName, bio,
+      is_public: isPublic, updated_at: updatedAt
+    };
+    // Do not erase a remote avatar if a legacy client has never stored the field.
+    if (Object.prototype.hasOwnProperty.call(profile, "avatarUrl")) {
+      const rawAvatar = String(profile.avatarUrl || "").trim();
+      coreWrite.avatar_url = rawAvatar && (rawAvatar.startsWith("https://") || rawAvatar.startsWith("http://")) ? rawAvatar.slice(0, 500) : null;
     }
+    const { error: coreError } = await client.from("listener_profiles").upsert(coreWrite, { onConflict: "user_id" });
+    if (coreError) throw coreError;
+
+    const extendedWrite = { updated_at: updatedAt };
+    if (Object.prototype.hasOwnProperty.call(profile, "handle")) {
+      const username = String(profile.handle || "").trim().replace(/^@/, "").toLowerCase();
+      extendedWrite.username = /^[a-z0-9_]{3,20}$/.test(username) ? username : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(profile, "location")) {
+      extendedWrite.location = String(profile.location || "").trim().slice(0, 60) || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(profile, "genres")) {
+      extendedWrite.favorite_genres = Array.isArray(profile.genres)
+        ? [...new Set(profile.genres.map(value => String(value).trim()).filter(Boolean))].slice(0, 12)
+        : [];
+    }
+    if (Object.keys(extendedWrite).length > 1) {
+      const { error: extendedError } = await client.from("listener_profiles").update(extendedWrite).eq("user_id", userId);
+      if (extendedError) {
+        if (extendedError.code === "42703" || /column .* does not exist/i.test(extendedError.message || "")) {
+          status("Core profile synced. Apply the listener profile v2 migration to sync username, location, and genres.");
+          return;
+        }
+        if (extendedError.code === "23505") {
+          status("Core profile synced, but that username is already taken. Choose another username and save again.");
+          return;
+        }
+        throw extendedError;
+      }
+    }
+  }
+  async function ensureOwnProfile() {
+    return syncOwnProfile(localRead("profile") || {});
   }
   function ensureListenerModal() {
     let modal = $("tf-listener-modal");
@@ -381,6 +454,7 @@
       <div class="tf-listener-avatar" id="tf-listener-avatar">L</div>
       <h2 id="tf-listener-name">Listener</h2>
       <p class="tf-listener-bio" id="tf-listener-bio"></p>
+      <p class="small-note" id="tf-listener-profile-meta"></p>
       <div class="tf-listener-meta">
         <div><strong id="tf-listener-followers">0</strong>Followers</div>
         <div><strong id="tf-listener-following">0</strong>Following</div>
@@ -400,6 +474,29 @@
     });
     return modal;
   }
+  function renderListenerAvatar(name, avatarUrl, allowImage) {
+    const target = $("tf-listener-avatar");
+    if (!target) return;
+    target.replaceChildren();
+    const fallback = String(name || "L").trim().slice(0, 1).toUpperCase() || "L";
+    if (allowImage && avatarUrl) {
+      try {
+        const parsed = new URL(String(avatarUrl), location.origin);
+        if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+          const image = document.createElement("img");
+          image.alt = "";
+          image.loading = "lazy";
+          image.decoding = "async";
+          image.referrerPolicy = "no-referrer";
+          image.src = parsed.href;
+          image.addEventListener("error", () => { target.replaceChildren(); target.textContent = fallback; }, { once: true });
+          target.append(image);
+          return;
+        }
+      } catch (_) { /* invalid avatar URL; use the initials fallback */ }
+    }
+    target.textContent = fallback;
+  }
   function closeListenerProfile() {
     const modal = $("tf-listener-modal");
     if (modal) modal.hidden = true;
@@ -409,8 +506,9 @@
     const modal = ensureListenerModal();
     modal.hidden = false;
     $("tf-listener-name").textContent = fallbackName || "Listener";
-    $("tf-listener-avatar").textContent = String(fallbackName || "L").slice(0, 1).toUpperCase();
+    renderListenerAvatar(fallbackName || "Listener", null, false);
     $("tf-listener-bio").textContent = "Loading profile…";
+    $("tf-listener-profile-meta").textContent = "";
     $("tf-listener-followers").textContent = "–";
     $("tf-listener-following").textContent = "–";
     $("tf-listener-posts").textContent = "–";
@@ -420,25 +518,52 @@
     followBtn.textContent = "…";
     followBtn.onclick = null;
     try {
-      const [{ data: profile }, { count: followers }, { count: following }, { count: posts }, followCheck] = await Promise.all([
+      const [{ data: profile }, followCountsResult, { count: posts }, followCheck] = await Promise.all([
         client.from("listener_profiles").select("display_name,bio,is_public,avatar_url").eq("user_id", userId).maybeSingle(),
-        client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
-        client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
+        client.rpc("listener_follow_counts", { p_user_id: userId }),
         client.from("community_posts").select("*", { count: "exact", head: true }).eq("user_id", userId),
         currentUser
           ? client.from("listener_follows").select("follower_id").eq("follower_id", currentUser.id).eq("followed_id", userId).maybeSingle()
           : Promise.resolve({ data: null })
       ]);
+      let followers = null, following = null;
+      const followStats = Array.isArray(followCountsResult.data) ? followCountsResult.data[0] : followCountsResult.data;
+      if (!followCountsResult.error && followStats) {
+        followers = Number(followStats.follower_count) || 0;
+        following = Number(followStats.following_count) || 0;
+      } else if (currentUser && (profile?.is_public === true || currentUser.id === userId)) {
+        // Older deployments may not have the aggregate RPC. Never query the
+        // follow graph for a private profile; defer metrics until migration setup.
+        const [followersResult, followingResult] = await Promise.all([
+          client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
+          client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId)
+        ]);
+        if (followersResult.error) throw followersResult.error;
+        if (followingResult.error) throw followingResult.error;
+        followers = followersResult.count || 0;
+        following = followingResult.count || 0;
+      }
       const name = profile?.display_name || fallbackName || "Listener";
       $("tf-listener-name").textContent = name;
-      $("tf-listener-avatar").textContent = name.slice(0, 1).toUpperCase();
-      $("tf-listener-bio").textContent = profile?.bio || "No public bio yet.";
-      $("tf-listener-followers").textContent = String(followers ?? 0);
-      $("tf-listener-following").textContent = String(following ?? 0);
-      $("tf-listener-posts").textContent = String(posts ?? 0);
       const isSelf = currentUser && currentUser.id === userId;
+      const isPrivateForViewer = !isSelf && (!profile || profile.is_public !== true);
+      $("tf-listener-bio").textContent = isPrivateForViewer ? "This listener keeps their profile private." : (profile?.bio || "No public bio yet.");
+      let extendedProfile = null;
+      try {
+        const extended = await client.from("listener_profiles").select("username,location,favorite_genres").eq("user_id", userId).maybeSingle();
+        if (!extended.error) extendedProfile = extended.data;
+      } catch (_) { /* the profile extension migration may not be installed yet */ }
+      renderListenerAvatar(name, profile?.avatar_url, !isPrivateForViewer);
+      const profileMeta = [extendedProfile?.username ? "@" + extendedProfile.username : "", extendedProfile?.location || "", Array.isArray(extendedProfile?.favorite_genres) ? extendedProfile.favorite_genres.join(" · ") : ""].filter(Boolean);
+      $("tf-listener-profile-meta").textContent = isPrivateForViewer ? "" : profileMeta.join(" · ");
+      $("tf-listener-followers").textContent = isPrivateForViewer ? "—" : String(followers ?? "—");
+      $("tf-listener-following").textContent = isPrivateForViewer ? "—" : String(following ?? "—");
+      $("tf-listener-posts").textContent = isPrivateForViewer ? "—" : String(posts ?? 0);
       const isFollowing = Boolean(followCheck?.data);
-      if (isSelf) {
+      if (isPrivateForViewer) {
+        followBtn.textContent = "Private profile";
+        followBtn.disabled = true;
+      } else if (isSelf) {
         followBtn.textContent = "Your profile";
         followBtn.disabled = true;
       } else if (!currentUser) {
@@ -474,17 +599,34 @@
       followBtn.textContent = "Unavailable";
     }
   }
-  async function loadCommunity() {
+  async function loadCommunity({ append = false } = {}) {
     if (!client) return;
+    if (append && communityLoading) return;
+    const requestGeneration = ++communityLoadGeneration;
+    const filter = $("tf-feed-filter")?.value || "All topics";
+    if (!append) {
+      communityOffset = 0;
+      communityPostsCache = [];
+      communityHasMore = false;
+    }
+    const start = append ? communityOffset : 0;
+    communityLoading = true;
+    renderCommunityPagination();
     try {
-      const { data: allPosts, error } = await client.from("community_posts")
+      let query = client.from("community_posts")
         .select("id,user_id,author_name,category,body,created_at,updated_at")
-        .order("created_at", { ascending: false }).limit(100);
+        .order("created_at", { ascending: false })
+        .range(start, start + COMMUNITY_PAGE_SIZE - 1);
+      if (filter !== "All topics") query = query.eq("category", filter);
+      const { data: pagePosts, error } = await query;
       if (error) throw error;
-      const filter = $("tf-feed-filter")?.value || "All topics";
-      const posts = (allPosts || []).filter(p => filter === "All topics" || p.category === filter);
-      const ids = posts.map(p => p.id);
-      let likes = [], comments = [], saved = new Set();
+      if (requestGeneration !== communityLoadGeneration) return;
+      const received = pagePosts || [];
+      communityPostsCache = append ? communityPostsCache.concat(received) : received;
+      communityOffset = start + received.length;
+      communityHasMore = received.length === COMMUNITY_PAGE_SIZE;
+      const ids = communityPostsCache.map(post => post.id);
+      let likes = [], comments = [], saved = new Set(), likeCounts = new Map();
       if (ids.length) {
         const [likeRes, commentRes] = await Promise.all([
           currentUser
@@ -494,16 +636,33 @@
         ]);
         if (likeRes.error) throw likeRes.error;
         if (commentRes.error) throw commentRes.error;
-        likes = likeRes.data || []; comments = commentRes.data || [];
+        likes = likeRes.data || [];
+        comments = commentRes.data || [];
+        const chunks = [];
+        for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+        const countResults = await Promise.all(chunks.map(chunk => client.rpc("community_post_like_counts", { p_post_ids: chunk })));
+        if (countResults.every(result => !result.error)) {
+          ids.forEach(id => likeCounts.set(id, 0));
+          countResults.flatMap(result => result.data || []).forEach(row => likeCounts.set(row.post_id, Number(row.like_count) || 0));
+        } else {
+          // Do not misrepresent the current user's own likes as the global total.
+          status("Community loaded; apply the community security migration to enable accurate shared like counts.");
+        }
         if (currentUser) {
           const savedRes = await client.from("saved_community_posts").select("post_id").eq("user_id", currentUser.id).in("post_id", ids);
           if (savedRes.error) throw savedRes.error;
           saved = new Set((savedRes.data || []).map(x => x.post_id));
         }
       }
-      renderSharedPosts(posts, likes, comments, saved);
+      if (requestGeneration !== communityLoadGeneration) return;
+      renderSharedPosts(communityPostsCache, likes, comments, saved, likeCounts);
     } catch (e) {
-      status("Shared community could not load. Check Supabase configuration and RLS: " + (e.message || "network error."));
+      if (requestGeneration === communityLoadGeneration) status("Shared community could not load. Check Supabase configuration and RLS: " + (e.message || "network error."));
+    } finally {
+      if (requestGeneration === communityLoadGeneration) {
+        communityLoading = false;
+        renderCommunityPagination();
+      }
     }
   }
   async function publishSharedPost() {
@@ -582,6 +741,7 @@
         if (this === localStorage && !suppressSync) {
           const key = Object.keys(keys).find(name => keys[name] === k);
           if (key) scheduleSync(key);
+          if (key === "profile") scheduleOwnProfileSync();
         }
       };
       Object.defineProperty(Storage.prototype, "__tfCloudWrapped", { value: true });

@@ -127,6 +127,8 @@
       // Releases / search placeholders used dynamically
       search_ph: "Search artists, releases, genres…",
       toast_saved: "Saved",
+      community_load_more: "Load more conversations",
+      community_loading: "Loading conversations…",
       lang_en: "English",
       lang_ru: "Русский",
       lang_fa: "فارسی"
@@ -236,6 +238,8 @@
       choose_track: "Выберите трек в плеере.",
       search_ph: "Поиск артистов, релизов, жанров…",
       toast_saved: "Сохранено",
+      community_load_more: "Загрузить ещё обсуждения",
+      community_loading: "Загрузка обсуждений…",
       lang_en: "English",
       lang_ru: "Русский",
       lang_fa: "فارسی"
@@ -345,6 +349,8 @@
       choose_track: "در پخش‌کننده یک قطعه انتخاب کنید.",
       search_ph: "جستجوی هنرمند، اثر، ژانر…",
       toast_saved: "ذخیره شد",
+      community_load_more: "گفتگوهای بیشتر",
+      community_loading: "در حال بارگذاری گفتگوها…",
       lang_en: "English",
       lang_ru: "Русский",
       lang_fa: "فارسی"
