@@ -28,6 +28,7 @@
   let communityLoading = false;
   let communityLoadGeneration = 0;
   let communityPostsCache = [];
+  let communityPaginationLangBound = false;
   let profileSyncTimer = null;
   const $ = id => document.getElementById(id);
   const localRead = key => {
@@ -237,8 +238,13 @@
     }
     button.hidden = !communityHasMore;
     button.disabled = communityLoading;
-    button.textContent = communityLoading ? "Loading conversations…" : "Load more conversations";
+    const translate = key => window.tfI18n?.t?.(key) || (key === "community_loading" ? "Loading conversations…" : "Load more conversations");
+    button.textContent = translate(communityLoading ? "community_loading" : "community_load_more");
     button.setAttribute("aria-live", "polite");
+    if (!communityPaginationLangBound) {
+      window.addEventListener("tf:lang", renderCommunityPagination);
+      communityPaginationLangBound = true;
+    }
   }
   function scheduleOwnProfileSync() {
     if (!client || !currentUser) return;
