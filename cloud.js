@@ -319,7 +319,8 @@
       const foot = el("div", "post-footer");
       foot.append(el("span", "", "SHARED COMMUNITY"));
       const liked = likedIds.has(post.id);
-      const likeCount = likeCounts.has(post.id) ? likeCounts.get(post.id) : 0;
+      const hasLikeCount = likeCounts.has(post.id);
+      const likeCount = hasLikeCount ? likeCounts.get(post.id) : "—";
       const like = el("button", "text-action", (liked ? "♥ Liked" : "♡ Like") + " · " + String(likeCount));
       like.type = "button"; like.setAttribute("aria-pressed", String(liked));
       like.addEventListener("click", () => togglePostLike(post.id, liked));
@@ -600,12 +601,11 @@
         for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
         const countResults = await Promise.all(chunks.map(chunk => client.rpc("community_post_like_counts", { p_post_ids: chunk })));
         if (countResults.every(result => !result.error)) {
+          ids.forEach(id => likeCounts.set(id, 0));
           countResults.flatMap(result => result.data || []).forEach(row => likeCounts.set(row.post_id, Number(row.like_count) || 0));
         } else {
-          const fallback = await client.from("community_post_likes").select("post_id").in("post_id", ids);
-          const rows = fallback.error ? likes : (fallback.data || []);
-          rows.forEach(row => likeCounts.set(row.post_id, (likeCounts.get(row.post_id) || 0) + 1));
-          status("Community loaded. Apply the community security migration to enable accurate shared like counts.");
+          // Do not misrepresent the current user's own likes as the global total.
+          status("Community loaded; apply the community security migration to enable accurate shared like counts.");
         }
         if (currentUser) {
           const savedRes = await client.from("saved_community_posts").select("post_id").eq("user_id", currentUser.id).in("post_id", ids);
