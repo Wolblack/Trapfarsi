@@ -484,7 +484,35 @@
     }
   }
   async function ensureOwnProfile() {
-    return syncOwnProfile(localRead("profile") || {});
+    if (!client || !currentUser) return;
+    const profile = localRead("profile") || {};
+    const { data: core, error: coreError } = await client.from("listener_profiles")
+      .select("is_public,avatar_url").eq("user_id", currentUser.id).maybeSingle();
+    if (coreError) throw coreError;
+    const merged = { ...profile };
+    let changed = false;
+    if (core && !Object.prototype.hasOwnProperty.call(merged, "public")) {
+      merged.public = core.is_public !== false;
+      changed = true;
+    }
+    if (core?.avatar_url && !Object.prototype.hasOwnProperty.call(merged, "avatarUrl")) {
+      merged.avatarUrl = core.avatar_url;
+      changed = true;
+    }
+    try {
+      const { data: extended, error } = await client.from("listener_profiles")
+        .select("username,location,favorite_genres").eq("user_id", currentUser.id).maybeSingle();
+      if (error && error.code !== "42703" && !/column .* does not exist/i.test(error.message || "")) throw error;
+      if (!error && extended) {
+        if (extended.username && !Object.prototype.hasOwnProperty.call(merged, "handle")) { merged.handle = extended.username; changed = true; }
+        if (extended.location && !Object.prototype.hasOwnProperty.call(merged, "location")) { merged.location = extended.location; changed = true; }
+        if (Array.isArray(extended.favorite_genres) && !Object.prototype.hasOwnProperty.call(merged, "genres")) { merged.genres = extended.favorite_genres; changed = true; }
+      }
+    } catch (error) { throw error; }
+    if (changed && localWrite("profile", merged)) {
+      window.dispatchEvent(new CustomEvent("tf:profile-updated"));
+    }
+    return syncOwnProfile(merged);
   }
   function ensureListenerModal() {
     let modal = $("tf-listener-modal");
