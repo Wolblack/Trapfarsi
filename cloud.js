@@ -407,7 +407,7 @@
     // Do not erase a remote avatar if a legacy client has never stored the field.
     if (Object.prototype.hasOwnProperty.call(profile, "avatarUrl")) {
       const rawAvatar = String(profile.avatarUrl || "").trim();
-      coreWrite.avatar_url = rawAvatar && /^https?:\\/\\//i.test(rawAvatar) ? rawAvatar.slice(0, 500) : null;
+      coreWrite.avatar_url = rawAvatar && (rawAvatar.startsWith("https://") || rawAvatar.startsWith("http://")) ? rawAvatar.slice(0, 500) : null;
     }
     const { error: coreError } = await client.from("listener_profiles").upsert(coreWrite, { onConflict: "user_id" });
     if (coreError) throw coreError;
