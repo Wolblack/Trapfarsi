@@ -22,6 +22,13 @@
   let loadGeneration = 0;
   const cloudVersions = new Map();
   const timers = new Map();
+  const COMMUNITY_PAGE_SIZE = 30;
+  let communityOffset = 0;
+  let communityHasMore = false;
+  let communityLoading = false;
+  let communityLoadGeneration = 0;
+  let communityPostsCache = [];
+  let profileSyncTimer = null;
   const $ = id => document.getElementById(id);
   const localRead = key => {
     try { const raw = localStorage.getItem(keys[key]); return raw === null ? null : JSON.parse(raw); }
@@ -217,6 +224,31 @@
     if (value !== undefined) node.textContent = value;
     return node;
   };
+  function renderCommunityPagination() {
+    const box = $("tf-community-posts");
+    if (!box) return;
+    let button = $("tf-community-load-more");
+    if (!button) {
+      button = el("button", "secondary-button", "Load more conversations");
+      button.id = "tf-community-load-more";
+      button.type = "button";
+      button.addEventListener("click", () => loadCommunity({ append: true }));
+      box.insertAdjacentElement("afterend", button);
+    }
+    button.hidden = !communityHasMore;
+    button.disabled = communityLoading;
+    button.textContent = communityLoading ? "Loading conversations…" : "Load more conversations";
+    button.setAttribute("aria-live", "polite");
+  }
+  function scheduleOwnProfileSync() {
+    if (!client || !currentUser) return;
+    clearTimeout(profileSyncTimer);
+    profileSyncTimer = setTimeout(() => {
+      syncOwnProfile(localRead("profile") || {}).catch(error => {
+        status("Profile sync issue: " + (error.message || "check the profile migration and try again."));
+      });
+    }, 300);
+  }
   async function togglePostLike(postId, liked) {
     if (!currentUser) { status("Sign in to like community posts."); return; }
     const result = liked
@@ -252,7 +284,7 @@
     const { error } = await client.from("community_reports").insert({ reporter_id: currentUser.id, post_id: postId, reason: clean });
     status(error ? "Report could not be submitted: " + error.message : "Report submitted for review.");
   }
-  function renderSharedPosts(posts, likes = [], comments = [], saved = new Set()) {
+  function renderSharedPosts(posts, likes = [], comments = [], saved = new Set(), likeCounts = new Map()) {
     const box = $("tf-community-posts");
     if (!box) return;
     box.replaceChildren();
@@ -280,9 +312,9 @@
       const body = el("p", "post-body", post.body);
       const foot = el("div", "post-footer");
       foot.append(el("span", "", "SHARED COMMUNITY"));
-      const postLikes = likes.filter(x => x.post_id === post.id);
       const liked = likedIds.has(post.id);
-      const like = el("button", "text-action", liked ? "♥ Liked" : "♡ Like");
+      const likeCount = likeCounts.has(post.id) ? likeCounts.get(post.id) : 0;
+      const like = el("button", "text-action", (liked ? "♥ Liked" : "♡ Like") + " · " + String(likeCount));
       like.type = "button"; like.setAttribute("aria-pressed", String(liked));
       like.addEventListener("click", () => togglePostLike(post.id, liked));
       const save = el("button", "text-action", saved.has(post.id) ? "Saved" : "Save");
@@ -348,27 +380,43 @@
       card.append(top, body, foot, thread); box.append(card);
     });
   }
-  async function ensureOwnProfile() {
+  async function syncOwnProfile(profile = localRead("profile") || {}) {
     if (!client || !currentUser) return;
-    const profile = localRead("profile") || {};
+    const userId = currentUser.id;
     const displayName = String(profile.name || currentUser.email?.split("@")[0] || "Listener").trim().slice(0, 32) || "Listener";
     const bio = String(profile.bio || "").slice(0, 240);
-    const { data: existing } = await client.from("listener_profiles").select("user_id").eq("user_id", currentUser.id).maybeSingle();
-    if (existing) {
-      await client.from("listener_profiles").update({
-        display_name: displayName,
-        bio,
-        is_public: true,
-        updated_at: new Date().toISOString()
-      }).eq("user_id", currentUser.id);
-    } else {
-      await client.from("listener_profiles").insert({
-        user_id: currentUser.id,
-        display_name: displayName,
-        bio,
-        is_public: true
-      });
+    const avatarUrl = /^https?:\/\//i.test(String(profile.avatarUrl || "")) ? String(profile.avatarUrl).slice(0, 500) : null;
+    const isPublic = profile.public !== false;
+    const updatedAt = new Date().toISOString();
+    // Persist established fields first so older deployments remain functional
+    // until the optional profile extension migration is applied.
+    const { error: coreError } = await client.from("listener_profiles").upsert({
+      user_id: userId, display_name: displayName, bio, avatar_url: avatarUrl,
+      is_public: isPublic, updated_at: updatedAt
+    }, { onConflict: "user_id" });
+    if (coreError) throw coreError;
+
+    const username = String(profile.handle || "").trim().replace(/^@/, "").toLowerCase();
+    const locationName = String(profile.location || "").trim().slice(0, 60) || null;
+    const favoriteGenres = Array.isArray(profile.genres)
+      ? [...new Set(profile.genres.map(value => String(value).trim()).filter(Boolean))].slice(0, 12)
+      : [];
+    const { error: extendedError } = await client.from("listener_profiles").update({
+      username: /^[a-z0-9_]{3,20}$/.test(username) ? username : null,
+      location: locationName,
+      favorite_genres: favoriteGenres,
+      updated_at: updatedAt
+    }).eq("user_id", userId);
+    if (extendedError) {
+      if (extendedError.code === "42703" || /column .* does not exist/i.test(extendedError.message || "")) {
+        status("Core profile synced. Apply the listener profile v2 migration to sync username, location, and genres.");
+        return;
+      }
+      throw extendedError;
     }
+  }
+  async function ensureOwnProfile() {
+    return syncOwnProfile(localRead("profile") || {});
   }
   function ensureListenerModal() {
     let modal = $("tf-listener-modal");
@@ -474,36 +522,71 @@
       followBtn.textContent = "Unavailable";
     }
   }
-  async function loadCommunity() {
+  async function loadCommunity({ append = false } = {}) {
     if (!client) return;
+    if (append && communityLoading) return;
+    const requestGeneration = ++communityLoadGeneration;
+    const filter = $("tf-feed-filter")?.value || "All topics";
+    if (!append) {
+      communityOffset = 0;
+      communityPostsCache = [];
+      communityHasMore = false;
+    }
+    const start = append ? communityOffset : 0;
+    communityLoading = true;
+    renderCommunityPagination();
     try {
-      const { data: allPosts, error } = await client.from("community_posts")
+      let query = client.from("community_posts")
         .select("id,user_id,author_name,category,body,created_at,updated_at")
-        .order("created_at", { ascending: false }).limit(100);
+        .order("created_at", { ascending: false })
+        .range(start, start + COMMUNITY_PAGE_SIZE - 1);
+      if (filter !== "All topics") query = query.eq("category", filter);
+      const { data: pagePosts, error } = await query;
       if (error) throw error;
-      const filter = $("tf-feed-filter")?.value || "All topics";
-      const posts = (allPosts || []).filter(p => filter === "All topics" || p.category === filter);
-      const ids = posts.map(p => p.id);
-      let likes = [], comments = [], saved = new Set();
+      if (requestGeneration !== communityLoadGeneration) return;
+      const received = pagePosts || [];
+      communityPostsCache = append ? communityPostsCache.concat(received) : received;
+      communityOffset = start + received.length;
+      communityHasMore = received.length === COMMUNITY_PAGE_SIZE;
+      const ids = communityPostsCache.map(post => post.id);
+      let likes = [], comments = [], saved = new Set(), likeCounts = new Map();
       if (ids.length) {
-        const [likeRes, commentRes] = await Promise.all([
+        const [likeRes, commentRes, countRes] = await Promise.all([
           currentUser
             ? client.from("community_post_likes").select("post_id,user_id").eq("user_id", currentUser.id).in("post_id", ids)
             : Promise.resolve({ data: [], error: null }),
-          client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000)
+          client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000),
+          client.rpc("community_post_like_counts", { p_post_ids: ids })
         ]);
         if (likeRes.error) throw likeRes.error;
         if (commentRes.error) throw commentRes.error;
-        likes = likeRes.data || []; comments = commentRes.data || [];
+        likes = likeRes.data || [];
+        comments = commentRes.data || [];
+        if (!countRes.error) {
+          likeCounts = new Map((countRes.data || []).map(row => [row.post_id, Number(row.like_count) || 0]));
+        } else {
+          // Backward-compatible fallback for projects that have not applied the
+          // aggregate RPC migration yet. Hardened RLS returns only own likes.
+          const fallback = await client.from("community_post_likes").select("post_id").in("post_id", ids);
+          const rows = fallback.error ? likes : (fallback.data || []);
+          rows.forEach(row => likeCounts.set(row.post_id, (likeCounts.get(row.post_id) || 0) + 1));
+          status("Community loaded. Apply the community security migration to enable accurate shared like counts.");
+        }
         if (currentUser) {
           const savedRes = await client.from("saved_community_posts").select("post_id").eq("user_id", currentUser.id).in("post_id", ids);
           if (savedRes.error) throw savedRes.error;
           saved = new Set((savedRes.data || []).map(x => x.post_id));
         }
       }
-      renderSharedPosts(posts, likes, comments, saved);
+      if (requestGeneration !== communityLoadGeneration) return;
+      renderSharedPosts(communityPostsCache, likes, comments, saved, likeCounts);
     } catch (e) {
-      status("Shared community could not load. Check Supabase configuration and RLS: " + (e.message || "network error."));
+      if (requestGeneration === communityLoadGeneration) status("Shared community could not load. Check Supabase configuration and RLS: " + (e.message || "network error."));
+    } finally {
+      if (requestGeneration === communityLoadGeneration) {
+        communityLoading = false;
+        renderCommunityPagination();
+      }
     }
   }
   async function publishSharedPost() {
@@ -582,6 +665,7 @@
         if (this === localStorage && !suppressSync) {
           const key = Object.keys(keys).find(name => keys[name] === k);
           if (key) scheduleSync(key);
+          if (key === "profile") scheduleOwnProfileSync();
         }
       };
       Object.defineProperty(Storage.prototype, "__tfCloudWrapped", { value: true });
