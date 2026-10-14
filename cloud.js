@@ -429,6 +429,7 @@
       <div class="tf-listener-avatar" id="tf-listener-avatar">L</div>
       <h2 id="tf-listener-name">Listener</h2>
       <p class="tf-listener-bio" id="tf-listener-bio"></p>
+      <p class="small-note" id="tf-listener-profile-meta"></p>
       <div class="tf-listener-meta">
         <div><strong id="tf-listener-followers">0</strong>Followers</div>
         <div><strong id="tf-listener-following">0</strong>Following</div>
@@ -459,6 +460,7 @@
     $("tf-listener-name").textContent = fallbackName || "Listener";
     $("tf-listener-avatar").textContent = String(fallbackName || "L").slice(0, 1).toUpperCase();
     $("tf-listener-bio").textContent = "Loading profile…";
+    $("tf-listener-profile-meta").textContent = "";
     $("tf-listener-followers").textContent = "–";
     $("tf-listener-following").textContent = "–";
     $("tf-listener-posts").textContent = "–";
@@ -468,25 +470,51 @@
     followBtn.textContent = "…";
     followBtn.onclick = null;
     try {
-      const [{ data: profile }, { count: followers }, { count: following }, { count: posts }, followCheck] = await Promise.all([
+      const [{ data: profile }, followCountsResult, { count: posts }, followCheck] = await Promise.all([
         client.from("listener_profiles").select("display_name,bio,is_public,avatar_url").eq("user_id", userId).maybeSingle(),
-        client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
-        client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
+        client.rpc("listener_follow_counts", { p_user_id: userId }),
         client.from("community_posts").select("*", { count: "exact", head: true }).eq("user_id", userId),
         currentUser
           ? client.from("listener_follows").select("follower_id").eq("follower_id", currentUser.id).eq("followed_id", userId).maybeSingle()
           : Promise.resolve({ data: null })
       ]);
+      let followers = 0, following = 0;
+      const followStats = Array.isArray(followCountsResult.data) ? followCountsResult.data[0] : followCountsResult.data;
+      if (!followCountsResult.error && followStats) {
+        followers = Number(followStats.follower_count) || 0;
+        following = Number(followStats.following_count) || 0;
+      } else {
+        // Compatibility with older projects that have not applied the aggregate RPC migration.
+        const [followersResult, followingResult] = await Promise.all([
+          client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
+          client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId)
+        ]);
+        if (followersResult.error) throw followersResult.error;
+        if (followingResult.error) throw followingResult.error;
+        followers = followersResult.count || 0;
+        following = followingResult.count || 0;
+      }
       const name = profile?.display_name || fallbackName || "Listener";
       $("tf-listener-name").textContent = name;
       $("tf-listener-avatar").textContent = name.slice(0, 1).toUpperCase();
-      $("tf-listener-bio").textContent = profile?.bio || "No public bio yet.";
-      $("tf-listener-followers").textContent = String(followers ?? 0);
-      $("tf-listener-following").textContent = String(following ?? 0);
-      $("tf-listener-posts").textContent = String(posts ?? 0);
       const isSelf = currentUser && currentUser.id === userId;
+      const isPrivateForViewer = !isSelf && (!profile || profile.is_public !== true);
+      $("tf-listener-bio").textContent = isPrivateForViewer ? "This listener keeps their profile private." : (profile?.bio || "No public bio yet.");
+      let extendedProfile = null;
+      try {
+        const extended = await client.from("listener_profiles").select("username,location,favorite_genres").eq("user_id", userId).maybeSingle();
+        if (!extended.error) extendedProfile = extended.data;
+      } catch (_) { /* the profile extension migration may not be installed yet */ }
+      const profileMeta = [extendedProfile?.username ? "@" + extendedProfile.username : "", extendedProfile?.location || "", Array.isArray(extendedProfile?.favorite_genres) ? extendedProfile.favorite_genres.join(" · ") : ""].filter(Boolean);
+      $("tf-listener-profile-meta").textContent = isPrivateForViewer ? "" : profileMeta.join(" · ");
+      $("tf-listener-followers").textContent = isPrivateForViewer ? "—" : String(followers ?? 0);
+      $("tf-listener-following").textContent = isPrivateForViewer ? "—" : String(following ?? 0);
+      $("tf-listener-posts").textContent = isPrivateForViewer ? "—" : String(posts ?? 0);
       const isFollowing = Boolean(followCheck?.data);
-      if (isSelf) {
+      if (isPrivateForViewer) {
+        followBtn.textContent = "Private profile";
+        followBtn.disabled = true;
+      } else if (isSelf) {
         followBtn.textContent = "Your profile";
         followBtn.disabled = true;
       } else if (!currentUser) {
@@ -551,22 +579,22 @@
       const ids = communityPostsCache.map(post => post.id);
       let likes = [], comments = [], saved = new Set(), likeCounts = new Map();
       if (ids.length) {
-        const [likeRes, commentRes, countRes] = await Promise.all([
+        const [likeRes, commentRes] = await Promise.all([
           currentUser
             ? client.from("community_post_likes").select("post_id,user_id").eq("user_id", currentUser.id).in("post_id", ids)
             : Promise.resolve({ data: [], error: null }),
-          client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000),
-          client.rpc("community_post_like_counts", { p_post_ids: ids })
+          client.from("community_comments").select("id,post_id,user_id,parent_id,body,created_at").in("post_id", ids).order("created_at", { ascending: true }).limit(1000)
         ]);
         if (likeRes.error) throw likeRes.error;
         if (commentRes.error) throw commentRes.error;
         likes = likeRes.data || [];
         comments = commentRes.data || [];
-        if (!countRes.error) {
-          likeCounts = new Map((countRes.data || []).map(row => [row.post_id, Number(row.like_count) || 0]));
+        const chunks = [];
+        for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+        const countResults = await Promise.all(chunks.map(chunk => client.rpc("community_post_like_counts", { p_post_ids: chunk })));
+        if (countResults.every(result => !result.error)) {
+          countResults.flatMap(result => result.data || []).forEach(row => likeCounts.set(row.post_id, Number(row.like_count) || 0));
         } else {
-          // Backward-compatible fallback for projects that have not applied the
-          // aggregate RPC migration yet. Hardened RLS returns only own likes.
           const fallback = await client.from("community_post_likes").select("post_id").in("post_id", ids);
           const rows = fallback.error ? likes : (fallback.data || []);
           rows.forEach(row => likeCounts.set(row.post_id, (likeCounts.get(row.post_id) || 0) + 1));
