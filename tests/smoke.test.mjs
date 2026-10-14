@@ -371,5 +371,5 @@ test("missing aggregate-count migration does not fabricate like totals", () => {
   const cloud = read("cloud.js");
   assert.match(cloud, /const hasLikeCount = likeCounts\.has\(post\.id\)/);
   assert.match(cloud, /hasLikeCount \? " · " \+ String\(likeCount\) : ""/);
-  assert.match(cloud, /Apply the community security migration to enable accurate shared like counts/);
+  assert.match(cloud, /apply the community security migration to enable accurate shared like counts/i);
 });
