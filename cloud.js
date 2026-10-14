@@ -66,7 +66,8 @@
       .tf-listener-meta{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 16px;font-size:12px;color:#657080}
       .tf-listener-meta strong{display:block;font-size:18px;color:#1f2937}
       .tf-listener-actions{display:flex;gap:10px;flex-wrap:wrap}
-      .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px}
+      .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px;overflow:hidden}
+      .tf-listener-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
       .tf-comment small{font-size:11px;color:#737d8b}
       .tf-reply{margin:8px 0 8px 14px;padding:8px 10px;border-left:2px solid rgba(100,110,125,.3);font-size:13px}
       .tf-comment-thread textarea{box-sizing:border-box;width:100%;margin:10px 0 8px;resize:vertical}
@@ -473,6 +474,29 @@
     });
     return modal;
   }
+  function renderListenerAvatar(name, avatarUrl, allowImage) {
+    const target = $("tf-listener-avatar");
+    if (!target) return;
+    target.replaceChildren();
+    const fallback = String(name || "L").trim().slice(0, 1).toUpperCase() || "L";
+    if (allowImage && avatarUrl) {
+      try {
+        const parsed = new URL(String(avatarUrl), location.origin);
+        if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+          const image = document.createElement("img");
+          image.alt = "";
+          image.loading = "lazy";
+          image.decoding = "async";
+          image.referrerPolicy = "no-referrer";
+          image.src = parsed.href;
+          image.addEventListener("error", () => { target.replaceChildren(); target.textContent = fallback; }, { once: true });
+          target.append(image);
+          return;
+        }
+      } catch (_) { /* invalid avatar URL; use the initials fallback */ }
+    }
+    target.textContent = fallback;
+  }
   function closeListenerProfile() {
     const modal = $("tf-listener-modal");
     if (modal) modal.hidden = true;
@@ -482,7 +506,7 @@
     const modal = ensureListenerModal();
     modal.hidden = false;
     $("tf-listener-name").textContent = fallbackName || "Listener";
-    $("tf-listener-avatar").textContent = String(fallbackName || "L").slice(0, 1).toUpperCase();
+    renderListenerAvatar(fallbackName || "Listener", null, false);
     $("tf-listener-bio").textContent = "Loading profile…";
     $("tf-listener-profile-meta").textContent = "";
     $("tf-listener-followers").textContent = "–";
@@ -521,7 +545,6 @@
       }
       const name = profile?.display_name || fallbackName || "Listener";
       $("tf-listener-name").textContent = name;
-      $("tf-listener-avatar").textContent = name.slice(0, 1).toUpperCase();
       const isSelf = currentUser && currentUser.id === userId;
       const isPrivateForViewer = !isSelf && (!profile || profile.is_public !== true);
       $("tf-listener-bio").textContent = isPrivateForViewer ? "This listener keeps their profile private." : (profile?.bio || "No public bio yet.");
@@ -530,6 +553,7 @@
         const extended = await client.from("listener_profiles").select("username,location,favorite_genres").eq("user_id", userId).maybeSingle();
         if (!extended.error) extendedProfile = extended.data;
       } catch (_) { /* the profile extension migration may not be installed yet */ }
+      renderListenerAvatar(name, profile?.avatar_url, !isPrivateForViewer);
       const profileMeta = [extendedProfile?.username ? "@" + extendedProfile.username : "", extendedProfile?.location || "", Array.isArray(extendedProfile?.favorite_genres) ? extendedProfile.favorite_genres.join(" · ") : ""].filter(Boolean);
       $("tf-listener-profile-meta").textContent = isPrivateForViewer ? "" : profileMeta.join(" · ");
       $("tf-listener-followers").textContent = isPrivateForViewer ? "—" : String(followers ?? "—");
