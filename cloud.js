@@ -478,13 +478,14 @@
           ? client.from("listener_follows").select("follower_id").eq("follower_id", currentUser.id).eq("followed_id", userId).maybeSingle()
           : Promise.resolve({ data: null })
       ]);
-      let followers = 0, following = 0;
+      let followers = null, following = null;
       const followStats = Array.isArray(followCountsResult.data) ? followCountsResult.data[0] : followCountsResult.data;
       if (!followCountsResult.error && followStats) {
         followers = Number(followStats.follower_count) || 0;
         following = Number(followStats.following_count) || 0;
-      } else {
-        // Compatibility with older projects that have not applied the aggregate RPC migration.
+      } else if (currentUser) {
+        // Older deployments may not have the aggregate RPC. Never query the
+        // follow graph anonymously; defer metrics until the migration is installed.
         const [followersResult, followingResult] = await Promise.all([
           client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
           client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId)
@@ -507,8 +508,8 @@
       } catch (_) { /* the profile extension migration may not be installed yet */ }
       const profileMeta = [extendedProfile?.username ? "@" + extendedProfile.username : "", extendedProfile?.location || "", Array.isArray(extendedProfile?.favorite_genres) ? extendedProfile.favorite_genres.join(" · ") : ""].filter(Boolean);
       $("tf-listener-profile-meta").textContent = isPrivateForViewer ? "" : profileMeta.join(" · ");
-      $("tf-listener-followers").textContent = isPrivateForViewer ? "—" : String(followers ?? 0);
-      $("tf-listener-following").textContent = isPrivateForViewer ? "—" : String(following ?? 0);
+      $("tf-listener-followers").textContent = isPrivateForViewer ? "—" : String(followers ?? "—");
+      $("tf-listener-following").textContent = isPrivateForViewer ? "—" : String(following ?? "—");
       $("tf-listener-posts").textContent = isPrivateForViewer ? "—" : String(posts ?? 0);
       const isFollowing = Boolean(followCheck?.data);
       if (isPrivateForViewer) {
