@@ -392,34 +392,51 @@
     const userId = currentUser.id;
     const displayName = String(profile.name || currentUser.email?.split("@")[0] || "Listener").trim().slice(0, 32) || "Listener";
     const bio = String(profile.bio || "").slice(0, 240);
-    const avatarUrl = /^https?:\/\//i.test(String(profile.avatarUrl || "")) ? String(profile.avatarUrl).slice(0, 500) : null;
-    const isPublic = profile.public !== false;
     const updatedAt = new Date().toISOString();
-    // Persist established fields first so older deployments remain functional
-    // until the optional profile extension migration is applied.
-    const { error: coreError } = await client.from("listener_profiles").upsert({
-      user_id: userId, display_name: displayName, bio, avatar_url: avatarUrl,
+    // A legacy local profile has no privacy preference. Preserve the stored
+    // account setting instead of silently making that account public on sign-in.
+    const { data: existingCore, error: existingCoreError } = await client.from("listener_profiles")
+      .select("is_public").eq("user_id", userId).maybeSingle();
+    if (existingCoreError) throw existingCoreError;
+    const isPublic = typeof profile.public === "boolean" ? profile.public : (existingCore?.is_public !== false);
+    const coreWrite = {
+      user_id: userId, display_name: displayName, bio,
       is_public: isPublic, updated_at: updatedAt
-    }, { onConflict: "user_id" });
+    };
+    // Do not erase a remote avatar if a legacy client has never stored the field.
+    if (Object.prototype.hasOwnProperty.call(profile, "avatarUrl")) {
+      const rawAvatar = String(profile.avatarUrl || "").trim();
+      coreWrite.avatar_url = rawAvatar && /^https?:\\/\\//i.test(rawAvatar) ? rawAvatar.slice(0, 500) : null;
+    }
+    const { error: coreError } = await client.from("listener_profiles").upsert(coreWrite, { onConflict: "user_id" });
     if (coreError) throw coreError;
 
-    const username = String(profile.handle || "").trim().replace(/^@/, "").toLowerCase();
-    const locationName = String(profile.location || "").trim().slice(0, 60) || null;
-    const favoriteGenres = Array.isArray(profile.genres)
-      ? [...new Set(profile.genres.map(value => String(value).trim()).filter(Boolean))].slice(0, 12)
-      : [];
-    const { error: extendedError } = await client.from("listener_profiles").update({
-      username: /^[a-z0-9_]{3,20}$/.test(username) ? username : null,
-      location: locationName,
-      favorite_genres: favoriteGenres,
-      updated_at: updatedAt
-    }).eq("user_id", userId);
-    if (extendedError) {
-      if (extendedError.code === "42703" || /column .* does not exist/i.test(extendedError.message || "")) {
-        status("Core profile synced. Apply the listener profile v2 migration to sync username, location, and genres.");
-        return;
+    const extendedWrite = { updated_at: updatedAt };
+    if (Object.prototype.hasOwnProperty.call(profile, "handle")) {
+      const username = String(profile.handle || "").trim().replace(/^@/, "").toLowerCase();
+      extendedWrite.username = /^[a-z0-9_]{3,20}$/.test(username) ? username : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(profile, "location")) {
+      extendedWrite.location = String(profile.location || "").trim().slice(0, 60) || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(profile, "genres")) {
+      extendedWrite.favorite_genres = Array.isArray(profile.genres)
+        ? [...new Set(profile.genres.map(value => String(value).trim()).filter(Boolean))].slice(0, 12)
+        : [];
+    }
+    if (Object.keys(extendedWrite).length > 1) {
+      const { error: extendedError } = await client.from("listener_profiles").update(extendedWrite).eq("user_id", userId);
+      if (extendedError) {
+        if (extendedError.code === "42703" || /column .* does not exist/i.test(extendedError.message || "")) {
+          status("Core profile synced. Apply the listener profile v2 migration to sync username, location, and genres.");
+          return;
+        }
+        if (extendedError.code === "23505") {
+          status("Core profile synced, but that username is already taken. Choose another username and save again.");
+          return;
+        }
+        throw extendedError;
       }
-      throw extendedError;
     }
   }
   async function ensureOwnProfile() {
@@ -490,9 +507,9 @@
       if (!followCountsResult.error && followStats) {
         followers = Number(followStats.follower_count) || 0;
         following = Number(followStats.following_count) || 0;
-      } else if (currentUser) {
+      } else if (currentUser && (profile?.is_public === true || currentUser.id === userId)) {
         // Older deployments may not have the aggregate RPC. Never query the
-        // follow graph anonymously; defer metrics until the migration is installed.
+        // follow graph for a private profile; defer metrics until migration setup.
         const [followersResult, followingResult] = await Promise.all([
           client.from("listener_follows").select("*", { count: "exact", head: true }).eq("followed_id", userId),
           client.from("listener_follows").select("*", { count: "exact", head: true }).eq("follower_id", userId)
