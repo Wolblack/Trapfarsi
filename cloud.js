@@ -29,6 +29,8 @@
   let communityLoadGeneration = 0;
   let communityPostsCache = [];
   let communityPaginationLangBound = false;
+  let communitySearchTimer = null;
+  let communityToolsLangBound = false;
   let profileSyncTimer = null;
   const $ = id => document.getElementById(id);
   const localRead = key => {
@@ -68,6 +70,7 @@
       .tf-listener-actions{display:flex;gap:10px;flex-wrap:wrap}
       .tf-listener-avatar{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font:800 22px Manrope,sans-serif;background:linear-gradient(145deg,#fff,#e5e9f0);box-shadow:6px 6px 16px #c5ccd655,-6px -6px 16px #fff;margin-bottom:12px;overflow:hidden}
       .tf-listener-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+      .tf-community-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}.tf-community-search{flex:1 1 200px;min-width:0}.tf-community-sort{flex:0 1 170px;min-width:145px}
       .tf-comment small{font-size:11px;color:#737d8b}
       .tf-reply{margin:8px 0 8px 14px;padding:8px 10px;border-left:2px solid rgba(100,110,125,.3);font-size:13px}
       .tf-comment-thread textarea{box-sizing:border-box;width:100%;margin:10px 0 8px;resize:vertical}
@@ -226,6 +229,46 @@
     if (value !== undefined) node.textContent = value;
     return node;
   };
+  function ensureCommunityTools() {
+    const head = document.querySelector(".community-feed-head");
+    if (!head || $("tf-community-tools")) return;
+    const tools = el("div", "tf-community-tools");
+    const search = el("input", "community-input tf-community-search");
+    search.id = "tf-community-search";
+    search.type = "search";
+    search.maxLength = 80;
+    search.autocomplete = "off";
+    search.setAttribute("aria-label", "Search community conversations");
+    search.placeholder = "Search shared conversations…";
+    const sort = el("select", "community-input tf-community-sort");
+    sort.id = "tf-community-sort";
+    sort.setAttribute("aria-label", "Sort community conversations");
+    [["newest", "Newest first"], ["oldest", "Oldest first"]].forEach(([value, label]) => {
+      const option = el("option", "", label); option.value = value; sort.append(option);
+    });
+    tools.append(search, sort);
+    head.insertAdjacentElement("afterend", tools);
+    const dictionary = {
+      en: { search: "Search shared conversations…", sort: "Sort conversations", newest: "Newest first", oldest: "Oldest first" },
+      ru: { search: "Поиск обсуждений…", sort: "Сортировка обсуждений", newest: "Сначала новые", oldest: "Сначала старые" },
+      fa: { search: "جستجوی گفتگوها…", sort: "مرتب‌سازی گفتگوها", newest: "جدیدترین", oldest: "قدیمی‌ترین" }
+    };
+    const applyLabels = () => {
+      const language = window.tfI18n?.getLang?.() || localStorage.getItem("tf_lang_v1") || "en";
+      const fallback = dictionary[language] || dictionary.en;
+      search.placeholder = window.tfI18n?.t?.("community_search_placeholder") || fallback.search;
+      search.setAttribute("aria-label", search.placeholder);
+      sort.setAttribute("aria-label", window.tfI18n?.t?.("community_sort") || fallback.sort);
+      if (sort.options[0]) sort.options[0].textContent = window.tfI18n?.t?.("community_sort_newest") || fallback.newest;
+      if (sort.options[1]) sort.options[1].textContent = window.tfI18n?.t?.("community_sort_oldest") || fallback.oldest;
+    };
+    applyLabels();
+    if (!communityToolsLangBound) {
+      window.addEventListener("tf:lang", applyLabels);
+      setTimeout(applyLabels, 0);
+      communityToolsLangBound = true;
+    }
+  }
   function renderCommunityPagination() {
     const box = $("tf-community-posts");
     if (!box) return;
@@ -321,8 +364,9 @@
       foot.append(el("span", "", "SHARED COMMUNITY"));
       const liked = likedIds.has(post.id);
       const hasLikeCount = likeCounts.has(post.id);
-      const likeCount = hasLikeCount ? likeCounts.get(post.id) : "—";
-      const like = el("button", "text-action", (liked ? "♥ Liked" : "♡ Like") + " · " + String(likeCount));
+      const likeCount = hasLikeCount ? likeCounts.get(post.id) : null;
+      const likeLabel = (liked ? "♥ Liked" : "♡ Like") + (hasLikeCount ? " · " + String(likeCount) : "");
+      const like = el("button", "text-action", likeLabel);
       like.type = "button"; like.setAttribute("aria-pressed", String(liked));
       like.addEventListener("click", () => togglePostLike(post.id, liked));
       const save = el("button", "text-action", saved.has(post.id) ? "Saved" : "Save");
@@ -441,7 +485,35 @@
     }
   }
   async function ensureOwnProfile() {
-    return syncOwnProfile(localRead("profile") || {});
+    if (!client || !currentUser) return;
+    const profile = localRead("profile") || {};
+    const { data: core, error: coreError } = await client.from("listener_profiles")
+      .select("is_public,avatar_url").eq("user_id", currentUser.id).maybeSingle();
+    if (coreError) throw coreError;
+    const merged = { ...profile };
+    let changed = false;
+    if (core && !Object.prototype.hasOwnProperty.call(merged, "public")) {
+      merged.public = core.is_public !== false;
+      changed = true;
+    }
+    if (core?.avatar_url && !Object.prototype.hasOwnProperty.call(merged, "avatarUrl")) {
+      merged.avatarUrl = core.avatar_url;
+      changed = true;
+    }
+    try {
+      const { data: extended, error } = await client.from("listener_profiles")
+        .select("username,location,favorite_genres").eq("user_id", currentUser.id).maybeSingle();
+      if (error && error.code !== "42703" && !/column .* does not exist/i.test(error.message || "")) throw error;
+      if (!error && extended) {
+        if (extended.username && !Object.prototype.hasOwnProperty.call(merged, "handle")) { merged.handle = extended.username; changed = true; }
+        if (extended.location && !Object.prototype.hasOwnProperty.call(merged, "location")) { merged.location = extended.location; changed = true; }
+        if (Array.isArray(extended.favorite_genres) && !Object.prototype.hasOwnProperty.call(merged, "genres")) { merged.genres = extended.favorite_genres; changed = true; }
+      }
+    } catch (error) { throw error; }
+    if (changed && localWrite("profile", merged)) {
+      window.dispatchEvent(new CustomEvent("tf:profile-updated"));
+    }
+    return syncOwnProfile(merged);
   }
   function ensureListenerModal() {
     let modal = $("tf-listener-modal");
@@ -604,6 +676,8 @@
     if (append && communityLoading) return;
     const requestGeneration = ++communityLoadGeneration;
     const filter = $("tf-feed-filter")?.value || "All topics";
+    const search = String($("tf-community-search")?.value || "").trim().slice(0, 80);
+    const sort = $("tf-community-sort")?.value === "oldest" ? "oldest" : "newest";
     if (!append) {
       communityOffset = 0;
       communityPostsCache = [];
@@ -615,9 +689,11 @@
     try {
       let query = client.from("community_posts")
         .select("id,user_id,author_name,category,body,created_at,updated_at")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: sort === "oldest" })
         .range(start, start + COMMUNITY_PAGE_SIZE - 1);
       if (filter !== "All topics") query = query.eq("category", filter);
+      // Search executes in Postgres before pagination; input is deliberately bounded.
+      if (search) query = query.ilike("body", "%" + search + "%");
       const { data: pagePosts, error } = await query;
       if (error) throw error;
       if (requestGeneration !== communityLoadGeneration) return;
@@ -687,6 +763,13 @@
     finally { if (button) button.disabled = false; }
   }
   function bindCommunity() {
+    ensureCommunityTools();
+    const communitySearch = $("tf-community-search");
+    communitySearch?.addEventListener("input", () => {
+      clearTimeout(communitySearchTimer);
+      communitySearchTimer = setTimeout(() => loadCommunity(), 250);
+    });
+    $("tf-community-sort")?.addEventListener("change", () => loadCommunity());
     const submit = $("tf-post-submit");
     submit?.addEventListener("click", event => {
       // When cloud is configured, never also run the local-preview handler.
