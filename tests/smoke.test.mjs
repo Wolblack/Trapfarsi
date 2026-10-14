@@ -344,3 +344,25 @@ test("public profile avatars use validated URLs and a safe fallback", () => {
   assert.match(cloud, /image\.addEventListener\("error"/);
   assert.match(cloud, /renderListenerAvatar\(name, profile\?\.avatar_url, !isPrivateForViewer\)/);
 });
+
+test("shared community search and sorting are server-side, bounded, and localized", () => {
+  const cloud = read("cloud.js");
+  const i18n = read("i18n.js");
+  assert.match(cloud, /function ensureCommunityTools\(/);
+  assert.match(cloud, /maxLength = 80/);
+  assert.match(cloud, /query\.ilike\("body", "%" \+ search \+ "%"/);
+  assert.match(cloud, /ascending: sort === "oldest"/);
+  assert.match(cloud, /communitySearchTimer = setTimeout\(\(\) => loadCommunity\(\), 250\)/);
+  assert.equal((i18n.match(/community_search_placeholder:/g) || []).length, 3);
+  assert.equal((i18n.match(/community_sort_newest:/g) || []).length, 3);
+  assert.equal((i18n.match(/community_sort_oldest:/g) || []).length, 3);
+});
+
+test("profile avatar controls do not alter design tokens or replace the app shell", () => {
+  const html = read("index.html");
+  const cloud = read("cloud.js");
+  assert.match(html, /--bg:#f3f4f6/);
+  assert.match(html, /--glass:#ffffff9c/);
+  assert.match(cloud, /renderListenerAvatar\(name, profile\?\.avatar_url, !isPrivateForViewer\)/);
+  assert.match(cloud, /image\.referrerPolicy = "no-referrer"/);
+});
