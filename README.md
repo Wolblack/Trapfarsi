@@ -125,3 +125,7 @@ The profile extension adds a unique username, optional location, favourite genre
 The shared community loads 30 posts per request and supports loading more; topic filtering runs in Supabase before pagination. Like totals are fetched through an aggregate RPC so the UI does not need to retrieve other listeners' identity rows.
 
 After applying the base `supabase-schema.sql`, run `supabase/migrations/20261014_trapfarsi_community_profiles.sql` in Supabase Dashboard → SQL Editor. This migration is version-controlled and does not automatically modify a hosted database. Run `npm test` and `npm run check` after changes.
+
+### Shared community discovery
+
+The cloud community now supports debounced server-side text search across post bodies, category filtering before pagination, and newest/oldest ordering. It loads 30 posts at a time and ignores stale search/filter responses. When the aggregate like-count migration is not installed, the interface does not show fabricated zero counts; it displays a setup notice instead.

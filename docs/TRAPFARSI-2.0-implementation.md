@@ -19,3 +19,7 @@ Apply `supabase/migrations/20261014_trapfarsi_community_profiles.sql` after the 
 ## Validation
 
 Run `npm test` and `npm run check`. Database-backed end-to-end testing still requires a Supabase project with the base schema and this migration applied.
+
+## Community search and ordering
+
+The shared feed supports server-side text search, topic filters, newest/oldest ordering, and loading the next 30 posts. Search runs in the database before pagination. The controls reuse the existing `community-input` and `secondary-button` styles; no visual theme or page layout was redesigned. Like totals remain unlabelled until the aggregate RPC exists rather than presenting an unknown total as zero.
