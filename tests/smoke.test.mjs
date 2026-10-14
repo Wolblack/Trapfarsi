@@ -325,3 +325,22 @@ test("community pagination labels are localized in all supported languages", () 
   assert.match(i18n, /گفتگوهای بیشتر/);
   assert.match(i18n, /Загрузить ещё обсуждения/);
 });
+
+test("profile sync preserves privacy and cloud metadata when older clients omit fields", () => {
+  const cloud = read("cloud.js");
+  assert.ok(cloud.includes('typeof profile.public === "boolean" ? profile.public : (existingCore?.is_public !== false)'));
+  assert.ok(cloud.includes('hasOwnProperty.call(profile, "avatarUrl")'));
+  assert.ok(cloud.includes('hasOwnProperty.call(profile, "handle")'));
+  assert.ok(cloud.includes('hasOwnProperty.call(profile, "location")'));
+  assert.ok(cloud.includes('hasOwnProperty.call(profile, "genres")'));
+  assert.ok(cloud.includes("currentUser && (profile?.is_public === true || currentUser.id === userId)"));
+});
+
+test("public profile avatars use validated URLs and a safe fallback", () => {
+  const cloud = read("cloud.js");
+  assert.match(cloud, /function renderListenerAvatar\(/);
+  assert.match(cloud, /parsed\.protocol === "https:" \|\| parsed\.protocol === "http:"/);
+  assert.match(cloud, /image\.referrerPolicy = "no-referrer"/);
+  assert.match(cloud, /image\.addEventListener\("error"/);
+  assert.match(cloud, /renderListenerAvatar\(name, profile\?\.avatar_url, !isPrivateForViewer\)/);
+});
