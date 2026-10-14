@@ -126,7 +126,6 @@
       }
       avatar.input.setCustomValidity("");
       delete status.dataset.error;
-      const avatarValue = avatar.input.value.trim();
       pendingFields = {
         handle: username,
         location: location.input.value.trim().slice(0, 60),
