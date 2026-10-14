@@ -87,6 +87,7 @@
     const help = document.createElement("p"); help.className = "small-note"; help.id = "tf13-profile-help"; help.textContent = t("privacy"); extra.append(help);
     const status = document.createElement("p"); status.className = "small-note"; status.id = "tf13-profile-status"; status.setAttribute("role", "status"); status.textContent = t("status"); extra.append(status);
     save.insertAdjacentElement("beforebegin", extra);
+    let pendingFields = null;
     function fill() {
       const p = readProfile();
       handle.input.value = String(p.handle || "");
@@ -109,6 +110,7 @@
     fill();
     // Validate during capture, before the existing Save handler writes name/bio.
     save.addEventListener("click", event => {
+      pendingFields = null;
       const username = handle.input.value.trim().replace(/^@/, "").toLowerCase();
       if (username && !/^[a-z0-9_]{3,20}$/.test(username)) {
         event.preventDefault(); event.stopImmediatePropagation();
@@ -124,23 +126,32 @@
       }
       avatar.input.setCustomValidity("");
       delete status.dataset.error;
-    }, true);
-    // Merge after the legacy handler so its name/bio write cannot erase metadata.
-    save.addEventListener("click", () => {
-      const previous = readProfile();
-      const username = handle.input.value.trim().replace(/^@/, "").toLowerCase();
       const avatarValue = avatar.input.value.trim();
-      const next = {
-        ...previous,
+      pendingFields = {
         handle: username,
         location: location.input.value.trim().slice(0, 60),
         genres: [...new Set(genres.input.value.split(",").map(value => value.trim()).filter(Boolean))].slice(0, 12),
-        avatarUrl: avatarValue && /^https?:\/\//i.test(avatarValue) ? avatarValue.slice(0, 500) : "",
-        public: pub.checked,
-        updatedAt: Date.now()
+        avatarUrl: avatarValue ? avatarValue.slice(0, 500) : "",
+        public: pub.checked
       };
-      if (writeProfile(next)) { status.dataset.error = ""; status.textContent = t("status"); }
-      else { status.dataset.error = "1"; status.textContent = "Browser storage is unavailable or full."; }
+    }, true);
+    // The original save handler re-renders the form; persist the captured values
+    // rather than reading controls that the legacy renderer may have reset.
+    save.addEventListener("click", () => {
+      const previous = readProfile();
+      const fields = pendingFields;
+      pendingFields = null;
+      if (!fields) return;
+      const next = { ...previous, ...fields, updatedAt: Date.now() };
+      if (writeProfile(next)) {
+        status.dataset.error = "";
+        status.textContent = t("status");
+        fill();
+        window.dispatchEvent(new CustomEvent("tf:profile-updated"));
+      } else {
+        status.dataset.error = "1";
+        status.textContent = "Browser storage is unavailable or full.";
+      }
     });
     window.addEventListener("tf:lang", translate);
     window.addEventListener("tf:profile-updated", fill);
